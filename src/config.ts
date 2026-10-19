@@ -75,6 +75,17 @@ export const CONFIG = {
     minLength: 0.5,
   },
 
+  platform: {
+    /** hauteur de la face inférieure de la poutre (voie du bas : 0 → y0) */
+    y0: 3.6,
+    thickness: 0.8,
+  },
+
+  loop: {
+    /** zoom arrière pendant le looping (lisibilité) */
+    zoom: 0.8,
+  },
+
   practice: {
     /** Délai avant respawn automatique en practice (ms). */
     respawnDelayMs: 650,

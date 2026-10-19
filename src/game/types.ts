@@ -27,13 +27,19 @@ export interface Flip {
   /** surface vers laquelle le joueur doit aller */
   to: Side;
   beat: number;
+  /** voie du joueur au moment du flip */
+  lo: number;
+  hi: number;
 }
 
 export interface Obstacle {
   /** étendue visuelle (unités monde) */
   x0: number;
   x1: number;
+  /** 'floor' : posé sur une surface et pointe vers le haut · 'ceil' : suspendu, pointe vers le bas */
   side: Side;
+  /** y de la surface d'accroche (0, plafond, ou face d'une plateforme) */
+  surface: number;
   height: number;
   kind: 'spike' | 'block';
   /** étendue de collision */
@@ -46,6 +52,34 @@ export interface Checkpoint {
   time: number;
   side: Side;
   section: number;
+  /** voie du joueur à ce moment (sol / plafond effectifs) */
+  lo: number;
+  hi: number;
+}
+
+/** Poutre intermédiaire : coupe le couloir en deux voies, sa tranche avant est un mur. */
+export interface Platform {
+  x0: number;
+  x1: number;
+  /** face inférieure / supérieure */
+  y0: number;
+  y1: number;
+}
+
+/** Looping : rotation complète de la caméra, sans flip ni obstacle. */
+export interface Loop {
+  t0: number;
+  t1: number;
+}
+
+/** Portion entre deux évènements (flip, entrée / sortie de plateforme) : le joueur reste d'un côté d'une voie. */
+export interface Stretch {
+  t0: number;
+  t1: number;
+  side: Side;
+  /** bornes de la voie (sol et plafond effectifs) */
+  lo: number;
+  hi: number;
 }
 
 export const SECTION_LABEL: Record<SectionType, string> = {

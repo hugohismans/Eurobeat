@@ -1,6 +1,7 @@
 import { CONFIG } from '../config';
 import { rng, type Level } from '../game/level';
-import type { Obstacle, Section } from '../game/types';
+import { laneAt } from '../game/physics';
+import type { Obstacle, Platform, Section } from '../game/types';
 import { brighten, css, mixPalette, PALETTES, type Palette, type RGB } from './palette';
 import { Particles } from './particles';
 
@@ -62,6 +63,8 @@ export class Renderer {
   private shake = 0;
   private flash = 0;
   private fps = 60;
+  /** débord horizontal des couches monde (agrandi pendant un looping, quand la vue tourne) */
+  private ext = 20;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -178,9 +181,27 @@ export class Renderer {
     ctx.fillStyle = rg;
     ctx.fillRect(-20, yf + deck, this.w + 40, this.h);
 
+    // looping : la vue tourne d'un tour complet autour de la voiture
+    const loop = level.loops.find((l) => t >= l.t0 && t <= l.t1);
+    this.ext = loop ? Math.hypot(this.w, this.h) : 20;
+    ctx.save();
+    if (loop) {
+      const k = (t - loop.t0) / (loop.t1 - loop.t0);
+      const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2;
+      const zoom = 1 - (1 - CONFIG.loop.zoom) * Math.sin(Math.PI * k);
+      const cx = this.sx(s.px);
+      const cy = this.sy(s.py);
+      ctx.translate(cx, cy);
+      ctx.rotate(-e * Math.PI * 2);
+      ctx.scale(zoom, zoom);
+      ctx.translate(-cx, -cy);
+    }
+    const X0 = -this.ext;
+    const XW = this.w + 2 * this.ext;
+
     // intérieur du couloir assombri pour la lisibilité
     ctx.fillStyle = 'rgba(4,3,16,0.42)';
-    ctx.fillRect(-20, yc, this.w + 40, yf - yc);
+    ctx.fillRect(X0, yc, XW, yf - yc);
 
     // tabliers d'autoroute (plafond et sol)
     this.drawDeck(yc - deck, yc, pal, true);
@@ -191,21 +212,24 @@ export class Renderer {
     const edgeA = brighten(pal.neonA, 0.25 * pulse);
     const edgeB = brighten(pal.neonB, 0.25 * pulse);
     ctx.globalCompositeOperation = 'lighter';
-    this.glowLine(0, yf, this.w, yf, edgeA, 1 + pulse * 0.8);
-    this.glowLine(0, yc, this.w, yc, edgeB, 1 + pulse * 0.8);
+    this.glowLine(X0, yf, X0 + XW, yf, edgeA, 1 + pulse * 0.8);
+    this.glowLine(X0, yc, X0 + XW, yc, edgeB, 1 + pulse * 0.8);
     ctx.globalCompositeOperation = 'source-over';
 
+    this.drawPlatforms(level.platforms, pal, pulse);
     if (CONFIG.render.showFlipMarkers) this.drawFlipMarkers(level, t, pal);
     this.drawObstacles(level.obstacles, pal, pulse);
+    const lane = laneAt(level.platforms, 0, s.px, s.py);
 
     // traînée "drift" en refrain
     if (!s.dead && s.grounded && (chorus || intensity > 0.85)) {
-      const surf = s.grav < 0 ? 0 : H;
+      const surf = s.grav < 0 ? lane.lo : lane.hi;
       const dir = s.grav < 0 ? 1 : -1;
       this.particles.emit(s.px - 0.55, surf + dir * 0.05, -3 - Math.random() * 3, dir * (0.5 + Math.random()), 0.55, 0.12, css(pal.neonA, 0.5), true, 0.5);
     }
     this.drawParticles();
-    if (!s.dead) this.drawCar(s, pal, chorus);
+    if (!s.dead) this.drawCar(s, pal, chorus || !!loop, lane.lo, lane.hi);
+    ctx.restore();
 
     this.drawRain(s.dt, intensity);
 
@@ -247,7 +271,7 @@ export class Renderer {
   private drawDeck(y0: number, y1: number, pal: Palette, top: boolean): void {
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(10,6,28,0.92)';
-    ctx.fillRect(-20, y0, this.w + 40, y1 - y0);
+    ctx.fillRect(-this.ext, y0, this.w + 2 * this.ext, y1 - y0);
     // grille synthwave en perspective : lignes qui divergent vers l'extérieur
     const edge = top ? y1 : y0;
     const outer = top ? y0 : y1;
@@ -257,15 +281,15 @@ export class Renderer {
     ctx.beginPath();
     const spacing = 2;
     const first = Math.floor(this.camX / spacing) * spacing;
-    for (let x = first; x < this.camX + this.w / this.scale + spacing * 4; x += spacing) {
+    for (let x = first - Math.ceil(this.ext / this.scale / spacing) * spacing; x < this.camX + (this.w + this.ext) / this.scale + spacing * 4; x += spacing) {
       const a = this.sx(x);
       ctx.moveTo(a, edge);
       ctx.lineTo(cx + (a - cx) * 1.6, outer);
     }
     for (let k = 1; k <= 3; k++) {
       const y = edge + (outer - edge) * (k * k) / 10;
-      ctx.moveTo(0, y);
-      ctx.lineTo(this.w, y);
+      ctx.moveTo(-this.ext, y);
+      ctx.lineTo(this.w + this.ext, y);
     }
     ctx.stroke();
   }
@@ -312,7 +336,7 @@ export class Renderer {
   }
 
   private visibleRange(): [number, number] {
-    return [this.camX - 2, this.camX + this.w / this.scale + 2];
+    return [this.camX - 2 - this.ext / this.scale, this.camX + (this.w + this.ext) / this.scale + 2];
   }
 
   private drawObstacles(obs: Obstacle[], pal: Palette, pulse: number): void {
@@ -330,8 +354,8 @@ export class Renderer {
       const o = obs[i];
       if (o.x1 < vx0) continue;
       const floor = o.side === 'floor';
-      const base = this.sy(floor ? 0 : H);
-      const tip = this.sy(floor ? o.height : H - o.height);
+      const base = this.sy(o.surface);
+      const tip = this.sy(floor ? o.surface + o.height : o.surface - o.height);
       const x0 = this.sx(o.x0);
       const x1 = this.sx(o.x1);
       const col = brighten(floor ? pal.neonA : pal.neonB, 0.3 * pulse);
@@ -379,6 +403,46 @@ export class Renderer {
     }
   }
 
+  /** Poutres néon : faces lumineuses, tranche avant signalée (c'est un mur). */
+  private drawPlatforms(pls: Platform[], pal: Palette, pulse: number): void {
+    const ctx = this.ctx;
+    const [vx0, vx1] = this.visibleRange();
+    for (const p of pls) {
+      if (p.x1 < vx0 || p.x0 > vx1) continue;
+      const x0 = this.sx(p.x0);
+      const x1 = this.sx(p.x1);
+      const yt = this.sy(p.y1);
+      const yb = this.sy(p.y0);
+      ctx.fillStyle = 'rgba(16,9,38,0.97)';
+      ctx.fillRect(x0, yt, x1 - x0, yb - yt);
+      // feux de balisage le long de la poutre, pulsés sur le beat
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = css(brighten(pal.neonB, 0.3), 0.35 + 0.5 * pulse);
+      const step = this.scale * 1.5;
+      const r = Math.max(1.5, this.scale * 0.06);
+      for (let x = x0 + step / 2; x < x1; x += step) ctx.fillRect(x - r, (yt + yb) / 2 - r, 2 * r, 2 * r);
+      this.glowLine(x0, yt, x1, yt, brighten(pal.neonA, 0.2 * pulse), 0.8);
+      this.glowLine(x0, yb, x1, yb, brighten(pal.neonB, 0.2 * pulse), 0.8);
+      // tranche avant : bande d'avertissement
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, yt, Math.min(this.scale * 0.6, x1 - x0), yb - yt);
+      ctx.clip();
+      ctx.fillStyle = '#ff8a2a';
+      ctx.fillRect(x0, yt, this.scale * 0.6, yb - yt);
+      ctx.strokeStyle = '#1a0a20';
+      ctx.lineWidth = Math.max(2, this.scale * 0.12);
+      ctx.beginPath();
+      for (let y = yt - this.scale; y < yb + this.scale; y += this.scale * 0.35) {
+        ctx.moveTo(x0, y);
+        ctx.lineTo(x0 + this.scale, y + this.scale * 0.6);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   private drawFlipMarkers(level: Level, t: number, pal: Palette): void {
     const ctx = this.ctx;
     const [vx0, vx1] = this.visibleRange();
@@ -394,7 +458,7 @@ export class Renderer {
       const a = 0.12 + 0.35 * near;
       const c = toCeil ? pal.neonB : pal.neonA;
       // chevron sur la surface à quitter, pointant vers la destination
-      const ys = this.sy(toCeil ? 0 : H);
+      const ys = this.sy(toCeil ? f.lo : f.hi);
       const d = toCeil ? -1 : 1;
       const s = this.scale * 0.32;
       ctx.strokeStyle = css(c, a + 0.2);
@@ -407,8 +471,8 @@ export class Renderer {
       ctx.strokeStyle = css(c, a * 0.5);
       ctx.setLineDash([4, 6]);
       ctx.beginPath();
-      ctx.moveTo(sx, this.sy(0));
-      ctx.lineTo(sx, this.sy(H));
+      ctx.moveTo(sx, this.sy(f.lo));
+      ctx.lineTo(sx, this.sy(f.hi));
       ctx.stroke();
       ctx.setLineDash([]);
     }
@@ -431,10 +495,10 @@ export class Renderer {
   }
 
   /** Voiture JDM stylisée (procédurale), repère local : y vers le haut, unités monde. */
-  private drawCar(s: FrameState, pal: Palette, drift: boolean): void {
+  private drawCar(s: FrameState, pal: Palette, drift: boolean, lo: number, hi: number): void {
     const ctx = this.ctx;
     const HALF = CONFIG.player.size / 2;
-    const k = (s.py - HALF) / (H - 2 * HALF);
+    const k = (s.py - lo - HALF) / Math.max(0.01, hi - lo - 2 * HALF);
     const flipY = Math.cos(Math.PI * Math.max(0, Math.min(1, k)));
     ctx.save();
     ctx.translate(this.sx(s.px), this.sy(s.py));
@@ -546,7 +610,7 @@ export class Renderer {
     ctx.strokeStyle = '#ff0';
     for (const o of s.level.obstacles) {
       if (o.hx1 < vx0 || o.hx0 > vx1) continue;
-      const y0 = o.side === 'floor' ? 0 : H - o.hh;
+      const y0 = o.side === 'floor' ? o.surface : o.surface - o.hh;
       ctx.strokeRect(this.sx(o.hx0), this.sy(y0 + o.hh), (o.hx1 - o.hx0) * this.scale, o.hh * this.scale);
     }
     ctx.fillStyle = '#0f0';

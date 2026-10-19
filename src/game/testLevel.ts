@@ -53,11 +53,11 @@ const FLIP_BEATS: number[] = [
   ...bar(9, 0, 2),
   ...bar(10, 0, 2),
   ...bar(11, 0, 2),
-  // pré-refrain : montée, noires puis accélération
+  // pré-refrain : montée, noires
   ...bar(12, 0, 2),
   ...bar(13, 0, 2),
   ...bar(14, 0, 1, 2, 3),
-  ...bar(15, 0, 1, 2, 3),
+  // mesure 15 : looping (aucun flip), on retombe sur le refrain
   // refrain 1 : noires, syncopes
   ...bar(16, 0, 1, 2, 3),
   ...bar(17, 0, 1.5, 2, 3),
@@ -67,15 +67,15 @@ const FLIP_BEATS: number[] = [
   ...bar(21, 0, 1.5, 2, 3),
   ...bar(22, 0, 1, 2, 2.5, 3),
   ...bar(23, 0, 2),
-  // break : on respire (aucun flip)
-  // refrain 2 : plus dense, croches
-  ...bar(28, 0, 1, 1.5, 2, 3),
-  ...bar(29, 0, 1.5, 2, 3),
-  ...bar(30, 0, 0.5, 1, 2, 3),
-  ...bar(31, 0, 1.5, 2.5, 3),
-  ...bar(32, 0, 1, 1.5, 2, 3),
-  ...bar(33, 0, 1.5, 2, 3),
-  ...bar(34, 0, 0.5, 1, 2, 2.5, 3),
+  // break : on respire ; mesure 27 : looping
+  // refrain 2 : plateforme du temps 3 de la mesure 28 au temps 1 de la mesure 34, croches dans la voie
+  ...bar(28, 0, 2),
+  ...bar(29, 0, 0.5, 1, 2, 2.5, 3),
+  ...bar(30, 0, 1, 1.5, 2, 3, 3.5),
+  ...bar(31, 0, 0.5, 1, 1.5, 2, 3),
+  ...bar(32, 0, 1, 1.5, 2, 2.5, 3),
+  ...bar(33, 0, 0.5, 1, 2, 3),
+  ...bar(34, 1, 2, 3),
   ...bar(35, 0, 2),
   // outro
   ...bar(36, 0),
@@ -83,6 +83,12 @@ const FLIP_BEATS: number[] = [
   ...bar(38, 0),
 ];
 
+const PLATFORMS = [{ from: 28 * 4 + 3, to: 34 * 4 }];
+const LOOPS = [
+  { from: 15 * 4, to: 16 * 4 },
+  { from: 27 * 4, to: 28 * 4 },
+];
+
 export function createTestLevel(): Level {
-  return buildLevel(TEST_MUSIC, thinBeats(FLIP_BEATS), 150);
+  return buildLevel(TEST_MUSIC, { flipBeats: thinBeats(FLIP_BEATS), platforms: PLATFORMS, loops: LOOPS }, 150);
 }

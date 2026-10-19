@@ -1,6 +1,10 @@
 import { click, type AudioTrack } from '../audio/track';
 import { musicFromAnalysis } from '../analysis/analyze';
 import type { Analysis } from '../analysis/dsp';
+import { CONFIG } from '../config';
+import { currentDifficulty } from '../game/difficulty';
+import { generateLevel, levelStats } from '../game/generate';
+import type { Level } from '../game/level';
 import type { MusicInfo } from '../game/types';
 import { TimelineView } from './timeline';
 
@@ -29,6 +33,8 @@ export class PrepScreen {
   private raf = 0;
   private nextBeat = 0;
   private saveTimer = 0;
+  private statsTimer = 0;
+  private levelCache: { key: string; level: Level } | null = null;
   private readonly dots = [...document.querySelectorAll<HTMLElement>('.beat-dots i')];
   private readonly bpmInput = $<HTMLInputElement>('bpm-input');
 
@@ -89,7 +95,9 @@ export class PrepScreen {
     badge.textContent = conf >= 2 ? 'détection fiable' : 'à vérifier';
     badge.className = `badge ${conf >= 2 ? 'ok' : 'warn'}`;
     this.timeline.setEnergy({ times: t.analysis.barTimes, values: t.analysis.barEnergy });
+    this.levelCache = null;
     this.render();
+    this.refreshStats();
     requestAnimationFrame(() => this.timeline.draw());
   }
 
@@ -112,6 +120,7 @@ export class PrepScreen {
     this.cur.music = m;
     this.nextBeat = this.beatIndexAt(this.cur.track.now());
     this.render();
+    this.refreshStats();
     clearTimeout(this.saveTimer);
     this.saveTimer = window.setTimeout(() => this.hooks.onSave(m), 300);
   }
@@ -126,6 +135,31 @@ export class PrepScreen {
     const edited = m.bpm !== a.bpm || m.offset !== a.offset ? ` · détecté : ${a.bpm} BPM, ${a.offset} ms` : '';
     $('prep-meta').textContent = `${mins}:${secs} · ${m.sections.length} sections${edited}`;
     this.timeline.draw();
+  }
+
+  // ---------- niveau généré : réutilisé au lancement tant que rien ne change ----------
+  levelFor(): Level {
+    const t = this.cur!;
+    const key = JSON.stringify([t.music, currentDifficulty(), CONFIG.physics.airFlip]);
+    if (this.levelCache?.key !== key) this.levelCache = { key, level: generateLevel(t.music, t.hash) };
+    return this.levelCache.level;
+  }
+
+  /** Statistiques du niveau, recalculées après une pause dans les réglages. */
+  refreshStats(): void {
+    if (!this.cur) return;
+    const el = $('prep-level');
+    el.textContent = 'Génération du niveau…';
+    clearTimeout(this.statsTimer);
+    this.statsTimer = window.setTimeout(() => {
+      if (!this.cur) return;
+      const s = levelStats(this.levelFor());
+      const extras = [s.platforms && `${s.platforms} plateforme${s.platforms > 1 ? 's' : ''}`, s.loops && `${s.loops} looping${s.loops > 1 ? 's' : ''}`].filter(Boolean);
+      el.innerHTML = '';
+      const stars = document.createElement('b');
+      stars.textContent = '★'.repeat(s.stars) + '☆'.repeat(5 - s.stars);
+      el.append(`${s.flips} flips · ${s.density} / min${extras.length ? ' · ' + extras.join(' · ') : ''} · `, stars);
+    }, 250);
   }
 
   // ---------- tap tempo ----------

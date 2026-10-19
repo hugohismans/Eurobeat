@@ -27,7 +27,7 @@ Tap / clic / Espace / ↑ : inverser la gravité · Échap ou ❚❚ : pause · 
 | `src/game/types.ts` | `MusicInfo` : format d'entrée unique du générateur (fichier ou YouTube) |
 | `src/game/timeline.ts` | Temps morceau ↔ position X (vitesse selon l'intensité de section, fondu) |
 | `src/game/physics.ts` | Perso, flip, collisions, profil de flip (utilisé pour placer les obstacles) |
-| `src/game/level.ts` | Liste de beats de flip → obstacles garantissant la fenêtre ±tolérance |
+| `src/game/level.ts` | Plan (flips, plateformes, loopings) → tronçons par voie → obstacles garantissant la fenêtre ±tolérance |
 | `src/game/sim.ts` | Une tentative : pas fixe 240 Hz, inputs horodatés en temps morceau, scoring |
 | `src/game/bot.ts` | Bot de validation (extrêmes, alternés, aléatoires dans la tolérance) |
 | `src/game/game.ts` | Horloge musicale → simulation → rendu interpolé, mort / practice / pause |
@@ -35,7 +35,8 @@ Tap / clic / Espace / ↑ : inverser la gravité · Échap ou ❚❚ : pause · 
 | `src/analysis/dsp.ts` | Analyse pure : flux spectral, tempo (autocorrélation + alignement de grille), temps 1, sections (auto-similarité + énergie) |
 | `src/analysis/worker.ts` | L'analyse tourne dans un Web Worker |
 | `src/analysis/cache.ts` | Cache IndexedDB (analyse + corrections, clé = SHA-256 du fichier, jamais l'audio) |
-| `src/game/generate.ts` | Générateur provisoire (motifs par section + réparation par le bot), remplacé à l'étape 3 |
+| `src/game/generate.ts` | Générateur : loopings (montée vers un refrain), plateformes (phrases de refrain), motifs par phrase (AABA, respirations), garde-fous, réparation par le bot, statistiques et étoiles |
+| `src/game/difficulty.ts` | Modes Facile / Moyen / Expert (tolérance, taille des obstacles, vitesse, densité) |
 | `src/ui/prep.ts` | Écran de préparation : BPM (÷2, ×2, fin, tap tempo), temps 1, écoute au métronome, sections, export JSON |
 | `src/ui/calibrate.ts` | Calibration de latence au tap |
 | `src/render/` | Rendu néon procédural (glow sans `shadowBlur`, décors pré-rendus, particules plafonnées) |

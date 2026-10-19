@@ -5,7 +5,6 @@ import { AudioTrack, audioContext } from './audio/track';
 import { CONFIG } from './config';
 import { applyDifficulty, currentDifficulty, DIFFICULTIES, type Difficulty } from './game/difficulty';
 import { Game, type EndInfo, type GameState } from './game/game';
-import { generateLevel } from './game/generate';
 import { sideAt, type Level } from './game/level';
 import { Run } from './game/sim';
 import { createTestLevel, TEST_TRACK_URL } from './game/testLevel';
@@ -76,6 +75,7 @@ document.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) =>
   b.addEventListener('click', () => {
     setDifficulty(b.dataset.diff as Difficulty);
     demoLevel = createTestLevel();
+    if (screen === 'prep') prep.refreshStats();
     if (!game) startAttract();
   }),
 );
@@ -240,7 +240,7 @@ const prep = new PrepScreen({
     const cur = prep.current!;
     loading('Génération du niveau…', 1);
     // laisser l'écran se peindre avant le calcul (≈ 200 ms)
-    setTimeout(() => startGame(generateLevel(cur.music, cur.hash), cur.track, 'file', practice), 30);
+    setTimeout(() => startGame(prep.levelFor(), cur.track, 'file', practice), 30);
   },
   onBack: () => show('menu'),
   onSave: (music) => {

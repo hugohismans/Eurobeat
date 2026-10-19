@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { Level } from './level';
-import { collides, createPlayer, HB_HALF, requestFlip, sideOf, stepPlayer, type PlayerState } from './physics';
+import { collides, createPlayer, HB_HALF, integrate, laneAt, requestFlip, sideOf, type PlayerState } from './physics';
 import type { Side } from './types';
 
 export interface RunStats {
@@ -40,14 +40,17 @@ export class Run {
 
   private inputs: number[] = [];
   private cursor = 0;
+  private pcursor = 0;
   private readonly used = new Set<number>();
 
   constructor(
     readonly level: Level,
     readonly spawnTime: number,
     spawnSide: Side,
+    lo?: number,
+    hi?: number,
   ) {
-    this.player = createPlayer(spawnSide);
+    this.player = createPlayer(spawnSide, lo, hi);
     this.prevY = this.player.y;
     this.time = spawnTime;
   }
@@ -56,7 +59,11 @@ export class Run {
   input(t: number): void {
     if (this.dead || this.finished) return;
     if (t < this.time - 0.05) return; // tap pendant le décompte
-    this.inputs.push(Math.max(t, this.time));
+    // insertion triée (les taps arrivent presque toujours dans l'ordre)
+    const v = Math.max(t, this.time);
+    let i = this.inputs.length;
+    while (i > 0 && this.inputs[i - 1] > v) i--;
+    this.inputs.splice(i, 0, v);
   }
 
   /** Avance la simulation jusqu'au temps cible. Retourne le nombre de pas effectués. */
@@ -81,16 +88,24 @@ export class Run {
     const p = this.player;
     this.prevY = p.y;
 
-    this.inputs.sort((a, b) => a - b);
     while (this.inputs.length && this.inputs[0] <= t) {
       const tap = this.inputs.shift()!;
       if (requestFlip(p, tap) !== null) this.scoreFlip(tap);
     }
-    const buffered = stepPlayer(p, this.dt, t);
+    const x = this.level.timeline.x(t);
+    const pls = this.level.platforms;
+    while (this.pcursor < pls.length && pls[this.pcursor].x1 < x - HB_HALF - 1) this.pcursor++;
+    const lane = laneAt(pls, this.pcursor, x, p.y);
+    const buffered = integrate(p, this.dt, t, lane.lo, lane.hi);
     if (buffered !== null) this.scoreFlip(buffered);
 
     this.time = t;
-    const x = this.level.timeline.x(t);
+    if (lane.crash) {
+      // tranche avant d'une poutre percutée en plein flip
+      this.dead = true;
+      this.deathTime = t;
+      return;
+    }
     const obs = this.level.obstacles;
     while (this.cursor < obs.length && obs[this.cursor].hx1 < x - HB_HALF) this.cursor++;
     if (collides(obs, this.cursor, x, p.y)) {

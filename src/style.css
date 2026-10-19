@@ -621,3 +621,15 @@ h3 {
   color: var(--cyan);
   border-color: var(--cyan);
 }
+
+.level-stats {
+  margin: -4px 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.level-stats b {
+  color: var(--orange);
+  letter-spacing: 0.1em;
+}

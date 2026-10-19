@@ -90,7 +90,7 @@ export class Game {
     const cp = this.level.checkpoints.filter((c) => c.time <= time).at(-1);
     const t = cp ? cp.time : 0;
     const side = cp ? cp.side : 'floor';
-    this.run = new Run(this.level, t, side);
+    this.run = new Run(this.level, t, side, cp?.lo, cp?.hi);
     this.run.onFlip = (e) => this.onFlip(e);
     this.attempts++;
     this.lastDelta = null;
