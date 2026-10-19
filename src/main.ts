@@ -318,15 +318,24 @@ async function showCatalog(): Promise<void> {
     status.textContent = 'Chargement du catalogue…';
     const list = await loadCatalog();
     status.textContent = '';
+    // une carte par titre, un bouton par version (normale, Climax…)
+    const groups = new Map<string, CatalogEntry[]>();
+    for (const e of list) groups.set(e.group ?? e.id, [...(groups.get(e.group ?? e.id) ?? []), e]);
     $('catalog-list').replaceChildren(
-      ...list.map((e) => {
-        const li = document.createElement('li');
-        const b = el('button', 'catalog-item');
-        const bpm = el('span', 'bpm', String(Math.round(e.music.bpm)));
-        bpm.append(el('small', '', `BPM · ${fmtTime(e.music.duration)}`));
-        b.append(el('span', 'title', e.title), bpm, el('span', 'meta', `${e.artist} · ${e.style} · ${e.license}`));
-        b.addEventListener('click', () => void openCatalogTrack(e));
-        li.append(b);
+      ...[...groups.values()].map((versions) => {
+        const first = versions[0];
+        const li = el('li', 'catalog-card');
+        li.append(el('span', 'title', first.title), el('span', 'meta', `${first.artist} · ${first.style} · ${first.license}`));
+        const row = el('div', 'variants');
+        for (const e of versions) {
+          const b = el('button', `variant${e.variant ? ' alt' : ''}`);
+          if (e.variant) b.append(el('span', 'tag-v', e.variant));
+          b.append(el('b', '', `${Math.round(e.music.bpm)} BPM`), el('small', '', fmtTime(e.music.duration)));
+          b.setAttribute('aria-label', `Jouer ${e.title}${e.variant ? ` (${e.variant})` : ''}, ${Math.round(e.music.bpm)} BPM`);
+          b.addEventListener('click', () => void openCatalogTrack(e));
+          row.append(b);
+        }
+        li.append(row);
         return li;
       }),
     );
@@ -350,7 +359,7 @@ async function openCatalogTrack(e: CatalogEntry): Promise<void> {
     const rec = await getTrack(hash);
     const music = rec && rec.analysis.version === e.analysis.version ? rec.music : structuredClone(e.music);
     show('prep');
-    prep.open({ name: `${e.title} — ${e.artist}`, hash, track, analysis: e.analysis, music, defaults: e.music, origin: 'catalog' });
+    prep.open({ name: `${e.title}${e.variant ? ` (${e.variant})` : ''} — ${e.artist}`, hash, track, analysis: e.analysis, music, defaults: e.music, origin: 'catalog' });
   } catch (err) {
     await showCatalog();
     error(`Impossible de charger ${e.title} : ${(err as Error).message}`);
@@ -371,7 +380,7 @@ async function showCredits(): Promise<void> {
       src.href = e.source;
       src.target = '_blank';
       src.rel = 'noopener';
-      li.append(el('b', '', e.title), ` — ${e.artist} · `, lic, ' · ', src);
+      li.append(el('b', '', `${e.title}${e.variant ? ` (${e.variant})` : ''}`), ` — ${e.artist} · `, lic, ' · ', src);
       if (e.attribution) li.append(el('div', 'hint', e.attribution));
       return li;
     }),

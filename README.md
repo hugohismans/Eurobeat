@@ -13,6 +13,7 @@ npm run check-analysis  # BPM / offset / sections sur des pistes générées (n�
 npm run check-analysis -- morceau.mp3   # analyse d'un fichier quelconque
 npm run track        # régénère public/audio/test-150.wav
 npm run catalog      # télécharge, ré-encode et analyse les morceaux de catalog/tracks.json
+npm run check-catalog  # grille calée sur la grosse caisse + niveaux finissables, pour chaque morceau
 npm run build        # dist/ (déployé sur GitHub Pages par .github/workflows/deploy.yml)
 ```
 

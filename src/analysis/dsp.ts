@@ -26,7 +26,7 @@ export interface Analysis {
 }
 
 /** Incrémenter quand l'analyse change : les résultats en cache sont alors recalculés. */
-export const ANALYSIS_VERSION = 2;
+export const ANALYSIS_VERSION = 3;
 
 /** Biais mesuré du détecteur (s) : le flux culmine un peu après l'attaque réelle. */
 const ONSET_LATENCY = -0.012;
@@ -243,17 +243,39 @@ export function estimateTempo(o: Float32Array, fr: number, minBpm = 120, maxBpm 
   return { bpm: Math.round(fine * 100) / 100, phase: finePhase, confidence };
 }
 
-function gridScore(o: Float32Array, phase: number, p: number): number {
-  let s = 0;
-  let c = 0;
-  for (let x = phase; x < o.length - 1; x += p) {
-    // tolérance de ±2 trames autour du temps
-    let m = 0;
-    for (let d = -2; d <= 2; d++) m = Math.max(m, sampleAt(o, x + d));
-    s += m;
-    c++;
+/**
+ * Phase de la grosse caisse : pic du profil des graves sur toute la durée d'un temps.
+ * Le flux total peut s'accrocher aux charlestons (contretemps, doubles-croches) ; si le pic des
+ * graves est ailleurs, il l'emporte. Près du demi-temps, la basse en octaves peut dominer les
+ * contretemps : on n'y bascule qu'avec une avance nette.
+ */
+function kickPhase(low: Float32Array, phase: number, p: number): number {
+  const prof = (ph: number) => {
+    let s = 0;
+    let c = 0;
+    for (let x = ph; x < low.length - 1; x += p) {
+      s += sampleAt(low, x);
+      c++;
+    }
+    return c ? s / c : 0;
+  };
+  const near = (ph: number) => Math.max(...[-2, -1, 0, 1, 2].map((d) => prof(ph + d)));
+  let best = phase;
+  let bs = -Infinity;
+  for (let ph = 0; ph < p; ph += 0.25) {
+    const v = prof(ph);
+    if (v > bs) {
+      bs = v;
+      best = ph;
+    }
   }
-  return c ? s / c : 0;
+  const dist = (a: number, b: number) => {
+    const d = Math.abs(a - b) % p;
+    return Math.min(d, p - d);
+  };
+  if (dist(best, phase) <= 3) return phase;
+  if (dist(best, phase + p / 2) <= 3) return near(best) > near(phase) * 1.1 ? best : phase;
+  return best;
 }
 
 /** Affinage sous-trame de la phase sur les attaques (±3 trames, pas de 0.1). */
@@ -568,7 +590,7 @@ export function analyze(x: Float32Array, sr: number, progress?: (p: number) => v
   // on garde la phase où la grosse caisse (flux des basses) est la plus forte
   const p = (60 * feat.fr) / tempo.bpm;
   const lowEnv = onsetEnvelope(feat.lowFlux, feat.fr);
-  if (gridScore(lowEnv, tempo.phase + p / 2, p) > gridScore(lowEnv, tempo.phase, p) * 1.1) tempo.phase = (tempo.phase + p / 2) % p;
+  tempo.phase = kickPhase(lowEnv, tempo.phase, p);
   tempo.phase = refinePhase(lowEnv, tempo.phase, p);
   progress?.(0.85);
   const { beatIndex, firstOnset } = findDownbeat(feat, o, tempo.bpm, tempo.phase);

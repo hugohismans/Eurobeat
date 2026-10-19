@@ -11,7 +11,8 @@
     "track": "node scripts/make-test-track.mjs",
     "check-level": "tsx scripts/check-level.ts",
     "check-analysis": "tsx scripts/check-analysis.ts",
-    "catalog": "tsx scripts/build-catalog.ts"
+    "catalog": "tsx scripts/build-catalog.ts",
+    "check-catalog": "tsx scripts/check-catalog.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

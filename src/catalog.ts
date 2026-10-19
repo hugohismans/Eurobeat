@@ -11,6 +11,10 @@ export interface CatalogSource {
   licenseUrl: string;
   /** page du morceau, qui montre la licence */
   source: string;
+  /** morceaux d'un même titre (version normale / Climax) : une seule carte dans le catalogue */
+  group?: string;
+  /** nom de la variante (ex. « Climax », plus rapide) */
+  variant?: string;
   /** attribution demandée par l'auteur, le cas échéant */
   attribution?: string;
   /** fichier audio d'origine (téléchargé par scripts/build-catalog.ts) */

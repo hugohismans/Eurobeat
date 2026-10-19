@@ -8,17 +8,396 @@
     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
     "source": "https://opengameart.org/node/162191",
     "url": "https://opengameart.org/sites/default/files/fever_stadium_bpm165.mp3",
-    "override": { "bpm": 165 }
+    "group": "fever-stadium",
+    "override": {
+      "bpm": 165
+    }
   },
   {
     "id": "fever-stadium-climax",
-    "title": "Fever Stadium (Climax)",
+    "title": "Fever Stadium",
     "artist": "MintoDog",
     "style": "Eurobeat",
     "license": "CC0 1.0",
     "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
     "source": "https://opengameart.org/node/162191",
     "url": "https://opengameart.org/sites/default/files/fever_stadium_climax_bpm180.mp3",
-    "override": { "bpm": 180 }
+    "group": "fever-stadium",
+    "variant": "Climax",
+    "override": {
+      "bpm": 180
+    }
+  },
+  {
+    "id": "sky-blue-street",
+    "title": "Sky Blue Street",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/sky-blue-street",
+    "url": "https://opengameart.org/sites/default/files/sky_blue_street_bpm165.mp3",
+    "group": "sky-blue-street",
+    "override": {
+      "bpm": 165
+    }
+  },
+  {
+    "id": "sky-blue-street-climax",
+    "title": "Sky Blue Street",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/sky-blue-street",
+    "url": "https://opengameart.org/sites/default/files/sky_blue_street_climax_bpm180.mp3",
+    "group": "sky-blue-street",
+    "variant": "Climax",
+    "override": {
+      "bpm": 180
+    }
+  },
+  {
+    "id": "neon-sign-circuit",
+    "title": "Neon Sign Circuit",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/neon-sign-circuit-remake",
+    "url": "https://opengameart.org/sites/default/files/neon_sign_circuit_remake_bpm145.mp3",
+    "group": "neon-sign-circuit",
+    "override": {
+      "bpm": 145
+    }
+  },
+  {
+    "id": "neon-sign-circuit-climax",
+    "title": "Neon Sign Circuit",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/neon-sign-circuit-remake",
+    "url": "https://opengameart.org/sites/default/files/neon_sign_circuit_climax_remake_bpm160.mp3",
+    "group": "neon-sign-circuit",
+    "variant": "Climax",
+    "override": {
+      "bpm": 160
+    }
+  },
+  {
+    "id": "darkness-road",
+    "title": "Darkness Road",
+    "artist": "MintoDog",
+    "style": "Racing techno",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/darkness-roadremake",
+    "url": "https://opengameart.org/sites/default/files/darkness_road_remake_bpm165.mp3",
+    "group": "darkness-road",
+    "override": {
+      "bpm": 165
+    }
+  },
+  {
+    "id": "darkness-road-climax",
+    "title": "Darkness Road",
+    "artist": "MintoDog",
+    "style": "Racing techno",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/darkness-roadremake",
+    "url": "https://opengameart.org/sites/default/files/darkness_road_climax_remake_bpm180.mp3",
+    "group": "darkness-road",
+    "variant": "Climax",
+    "override": {
+      "bpm": 180
+    }
+  },
+  {
+    "id": "hot-roadway",
+    "title": "Hot Roadway",
+    "artist": "MintoDog",
+    "style": "Racing rock",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/hot-roadway-remake",
+    "url": "https://opengameart.org/sites/default/files/hot_roadway_remake_bpm160.mp3",
+    "group": "hot-roadway",
+    "override": {
+      "bpm": 160
+    }
+  },
+  {
+    "id": "hot-roadway-climax",
+    "title": "Hot Roadway",
+    "artist": "MintoDog",
+    "style": "Racing rock",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/hot-roadway-remake",
+    "url": "https://opengameart.org/sites/default/files/hot_roadway_climax_remake_bpm175.mp3",
+    "group": "hot-roadway",
+    "variant": "Climax",
+    "override": {
+      "bpm": 175
+    }
+  },
+  {
+    "id": "pure-raceway",
+    "title": "Pure Raceway",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/pure-raceway",
+    "url": "https://opengameart.org/sites/default/files/pure_raceway_bpm160.mp3",
+    "group": "pure-raceway",
+    "override": {
+      "bpm": 160
+    }
+  },
+  {
+    "id": "pure-raceway-climax",
+    "title": "Pure Raceway",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/pure-raceway",
+    "url": "https://opengameart.org/sites/default/files/pure_raceway_climax_bpm175.mp3",
+    "group": "pure-raceway",
+    "variant": "Climax",
+    "override": {
+      "bpm": 175
+    }
+  },
+  {
+    "id": "cool-highway",
+    "title": "Cool Highway",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/cool-highway-remake",
+    "url": "https://opengameart.org/sites/default/files/cool_highway_remake_bpm140.mp3",
+    "group": "cool-highway",
+    "override": {
+      "bpm": 140
+    }
+  },
+  {
+    "id": "cool-highway-climax",
+    "title": "Cool Highway",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/cool-highway-remake",
+    "url": "https://opengameart.org/sites/default/files/cool_highway_climax_remake_bpm155.mp3",
+    "group": "cool-highway",
+    "variant": "Climax",
+    "override": {
+      "bpm": 155
+    }
+  },
+  {
+    "id": "joyful-jungle",
+    "title": "Joyful Jungle",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/joyful-jungle",
+    "url": "https://opengameart.org/sites/default/files/joyful_jungle_bpm140.mp3",
+    "group": "joyful-jungle",
+    "override": {
+      "bpm": 140
+    }
+  },
+  {
+    "id": "joyful-jungle-climax",
+    "title": "Joyful Jungle",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/joyful-jungle",
+    "url": "https://opengameart.org/sites/default/files/joyful_jungle_climax_bpm155.mp3",
+    "group": "joyful-jungle",
+    "variant": "Climax",
+    "override": {
+      "bpm": 155
+    }
+  },
+  {
+    "id": "blossom-mountain",
+    "title": "Blossom Mountain",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/blossom-mountainremake",
+    "url": "https://opengameart.org/sites/default/files/blossom_mountain_remake_bpm140.mp3",
+    "group": "blossom-mountain",
+    "override": {
+      "bpm": 140
+    }
+  },
+  {
+    "id": "blossom-mountain-climax",
+    "title": "Blossom Mountain",
+    "artist": "MintoDog",
+    "style": "Synth racing",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/blossom-mountainremake",
+    "url": "https://opengameart.org/sites/default/files/blossom_mountain_climax_remake_bpm155.mp3",
+    "group": "blossom-mountain",
+    "variant": "Climax",
+    "override": {
+      "bpm": 155
+    }
+  },
+  {
+    "id": "super-santa-claus",
+    "title": "Super Santa Claus",
+    "artist": "MintoDog",
+    "style": "Eurobeat",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/super-santa-claus",
+    "url": "https://opengameart.org/sites/default/files/super_santa_claus_bpm170.mp3",
+    "override": {
+      "bpm": 170
+    }
+  },
+  {
+    "id": "technomania101",
+    "title": "Technomania101",
+    "artist": "Fupi",
+    "style": "Europop / eurodance",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/technomania101-2000s-europop-electronic-dance-music",
+    "url": "https://opengameart.org/sites/default/files/technomania101_notempochange.ogg"
+  },
+  {
+    "id": "i-dont-understand",
+    "title": "I Don't Understand",
+    "artist": "Snabisch",
+    "style": "Happy hardcore",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://opengameart.org/content/i-don%C2%B4t-understand",
+    "url": "https://opengameart.org/sites/default/files/I%20Don%C2%B4t%20Understand.mp3",
+    "attribution": "« I Don't Understand » par Snabisch (OpenGameArt), CC BY 3.0"
+  },
+  {
+    "id": "italo-nights",
+    "title": "Italo Nights",
+    "artist": "cosmac",
+    "style": "Italo / Hi-NRG",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+    "source": "https://opengameart.org/content/italo-nights",
+    "url": "https://opengameart.org/sites/default/files/italo.mp3",
+    "attribution": "« Italo Nights » par cosmac (OpenGameArt), CC BY 3.0",
+    "override": {
+      "bpm": 140
+    }
+  },
+  {
+    "id": "glory-days",
+    "title": "Glory Days",
+    "artist": "Tricks & Traps",
+    "style": "Trance / techno",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/content/free-rhythm-game-music-pack-1",
+    "url": "https://opengameart.org/sites/default/files/6_glory_days.wav",
+    "override": {
+      "bpm": 184
+    }
+  },
+  {
+    "id": "retroracing-nightlife",
+    "title": "Retroracing Nightlife",
+    "artist": "Bogart VGM",
+    "style": "Synthwave racing",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://opengameart.org/content/retroracing-nightlife",
+    "url": "https://opengameart.org/sites/default/files/Retroracing%20Nightlife_0.mp3",
+    "attribution": "« Retroracing Nightlife » par Bogart VGM, CC BY 4.0 — https://www.facebook.com/BogartVGM/"
+  },
+  {
+    "id": "retroracing-one-more-round",
+    "title": "Retroracing One More Round",
+    "artist": "Bogart VGM",
+    "style": "Synthwave racing",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://opengameart.org/content/retroracing-one-more-round",
+    "url": "https://opengameart.org/sites/default/files/Retroracing%20One%20more%20round_0.mp3",
+    "attribution": "« Retroracing One More Round » par Bogart VGM, CC BY 4.0 — https://www.facebook.com/BogartVGM/",
+    "override": {
+      "bpm": 112,
+      "offset": 331
+    }
+  },
+  {
+    "id": "90s-racer-techno",
+    "title": "90s Racer Techno",
+    "artist": "Bogart VGM",
+    "style": "Synthwave racing",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://opengameart.org/content/90s-racer-techno",
+    "url": "https://opengameart.org/sites/default/files/90s_racer_techno_0.mp3",
+    "attribution": "« 90s Racer Techno » par Bogart VGM, CC BY 4.0 — https://www.facebook.com/BogartVGM/"
+  },
+  {
+    "id": "shiny-tech",
+    "title": "Shiny Tech",
+    "artist": "Kevin MacLeod",
+    "style": "Techno-pop dance",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100078",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Shiny%20Tech.mp3",
+    "attribution": "« Shiny Tech » Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0 License, http://creativecommons.org/licenses/by/4.0/",
+    "override": {
+      "bpm": 138
+    }
+  },
+  {
+    "id": "club-diver",
+    "title": "Club Diver",
+    "artist": "Kevin MacLeod",
+    "style": "Techno-pop dance",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1200020",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Club%20Diver.mp3",
+    "attribution": "« Club Diver » Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0 License, http://creativecommons.org/licenses/by/4.0/",
+    "override": {
+      "bpm": 140
+    }
+  },
+  {
+    "id": "show-your-moves",
+    "title": "Show Your Moves",
+    "artist": "Kevin MacLeod",
+    "style": "Techno-pop dance",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "source": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1100751",
+    "url": "https://incompetech.com/music/royalty-free/mp3-royaltyfree/Show%20Your%20Moves.mp3",
+    "attribution": "« Show Your Moves » Kevin MacLeod (incompetech.com), Licensed under Creative Commons: By Attribution 4.0 License, http://creativecommons.org/licenses/by/4.0/",
+    "override": {
+      "bpm": 136
+    }
   }
 ]

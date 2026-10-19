@@ -1,5 +1,5 @@
 // Construit le catalogue de morceaux libres : npm run catalog
-// 1. télécharge chaque morceau de catalog/tracks.json (s'il manque) et le ré-encode en MP3 160 kbps
+// 1. télécharge chaque morceau de catalog/tracks.json (s'il manque) et le ré-encode en MP3 128 kbps
 // 2. l'analyse (même code que le jeu) et applique les corrections manuelles ("override")
 // 3. écrit public/catalog/catalog.json, lu par l'écran Catalogue
 import { execFileSync } from 'node:child_process';
@@ -22,8 +22,8 @@ for (const src of sources) {
     const dir = mkdtempSync(join(tmpdir(), 'gd-dl-'));
     const raw = join(dir, 'source');
     console.log(`téléchargement ${src.id}…`);
-    execFileSync('curl', ['-sSfL', '--max-filesize', '60000000', '-o', raw, src.url]);
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', raw, '-map_metadata', '-1', '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '160k', dest]);
+    execFileSync('curl', ['-sSfL', '--max-filesize', '80000000', '-o', raw, src.url]);
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', raw, '-map_metadata', '-1', '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '128k', dest]);
     rmSync(dir, { recursive: true, force: true });
   }
   const pcm = execFileSync('ffmpeg', ['-v', 'error', '-i', dest, '-ac', '1', '-ar', '22050', '-f', 'f32le', '-'], { maxBuffer: 1 << 30 });
@@ -46,7 +46,7 @@ const assets = join(root, 'ASSETS.md');
 const table = [
   '| Fichier | Titre | Auteur | Licence | Source |',
   '| --- | --- | --- | --- | --- |',
-  ...out.map((e) => `| \`public/${e.file}\` | ${e.title} | ${e.artist} | [${e.license}](${e.licenseUrl}) | [page](${e.source}) |`),
+  ...out.map((e) => `| \`public/${e.file}\` | ${e.title}${e.variant ? ` (${e.variant})` : ''} | ${e.artist} | [${e.license}](${e.licenseUrl}) | [page](${e.source}) |`),
 ].join('\n');
 const md = readFileSync(assets, 'utf8').replace(/<!-- catalogue:début -->[\s\S]*<!-- catalogue:fin -->/, `<!-- catalogue:début -->\n${table}\n<!-- catalogue:fin -->`);
 writeFileSync(assets, md);
