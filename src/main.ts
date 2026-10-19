@@ -2,6 +2,7 @@ import './style.css';
 import { analyzeBuffer, hashBytes, isCurrent, musicFromAnalysis } from './analysis/analyze';
 import { deleteTrack, getTrack, listTracks, putTrack } from './analysis/cache';
 import { AudioTrack, audioContext } from './audio/track';
+import { loadCatalog, type CatalogEntry } from './catalog';
 import { CONFIG } from './config';
 import { applyDifficulty, currentDifficulty, DIFFICULTIES, type Difficulty } from './game/difficulty';
 import { Game, type EndInfo, type GameState } from './game/game';
@@ -106,7 +107,7 @@ airFlip.addEventListener('change', () => {
 });
 
 // ---------- écrans ----------
-const screens = ['menu', 'loading', 'prep', 'calibrate', 'pause', 'end'] as const;
+const screens = ['menu', 'catalog', 'credits', 'loading', 'prep', 'calibrate', 'pause', 'end'] as const;
 type Screen = (typeof screens)[number] | null;
 let screen: Screen = 'menu';
 function show(next: Screen): void {
@@ -256,7 +257,7 @@ async function openFile(file: File): Promise<void> {
     }
     track.latencyMs = latencyMs;
     show('prep');
-    prep.open({ name: rec.name, hash, track, analysis: rec.analysis, music: rec.music });
+    prep.open({ name: rec.name, hash, track, analysis: rec.analysis, music: rec.music, origin: 'file' });
   } catch (e) {
     show('menu');
     error(`Fichier illisible (${(e as Error).message}). Formats conseillés : MP3, OGG, WAV.`);
@@ -270,7 +271,7 @@ const prep = new PrepScreen({
     // laisser l'écran se peindre avant le calcul (≈ 200 ms)
     setTimeout(() => startGame(prep.levelFor(), cur.track, 'file', practice), 30);
   },
-  onBack: () => show('menu'),
+  onBack: (origin) => (origin === 'catalog' ? void showCatalog() : show('menu')),
   onSave: (music) => {
     const cur = prep.current;
     if (cur) void putTrack({ hash: cur.hash, name: cur.name, analysis: cur.analysis, music, updatedAt: Date.now() });
@@ -298,8 +299,93 @@ window.addEventListener('drop', (e) => {
   if (f && screen === 'menu') void openFile(f);
 });
 
+// ---------- catalogue de morceaux libres ----------
+const catalogTracks = new Map<string, AudioTrack>();
+
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = ''): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag);
+  e.className = cls;
+  e.textContent = text;
+  return e;
+}
+
+const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+
+async function showCatalog(): Promise<void> {
+  show('catalog');
+  const status = $('catalog-status');
+  try {
+    status.textContent = 'Chargement du catalogue…';
+    const list = await loadCatalog();
+    status.textContent = '';
+    $('catalog-list').replaceChildren(
+      ...list.map((e) => {
+        const li = document.createElement('li');
+        const b = el('button', 'catalog-item');
+        const bpm = el('span', 'bpm', String(Math.round(e.music.bpm)));
+        bpm.append(el('small', '', `BPM · ${fmtTime(e.music.duration)}`));
+        b.append(el('span', 'title', e.title), bpm, el('span', 'meta', `${e.artist} · ${e.style} · ${e.license}`));
+        b.addEventListener('click', () => void openCatalogTrack(e));
+        li.append(b);
+        return li;
+      }),
+    );
+  } catch (e) {
+    status.textContent = `Catalogue indisponible (${(e as Error).message}). Vérifie ta connexion puis réessaie.`;
+  }
+}
+
+async function openCatalogTrack(e: CatalogEntry): Promise<void> {
+  const ctx = audioContext(); // dans le geste utilisateur
+  try {
+    let track = catalogTracks.get(e.id);
+    if (!track) {
+      loading(`Chargement de ${e.title}…`, 0.3);
+      track = await AudioTrack.fromUrl(ctx, e.file);
+      catalogTracks.set(e.id, track);
+    }
+    track.latencyMs = latencyMs;
+    // corrections du joueur sur ce morceau, sinon réglages du catalogue
+    const hash = `cat:${e.id}`;
+    const rec = await getTrack(hash);
+    const music = rec && rec.analysis.version === e.analysis.version ? rec.music : structuredClone(e.music);
+    show('prep');
+    prep.open({ name: `${e.title} — ${e.artist}`, hash, track, analysis: e.analysis, music, defaults: e.music, origin: 'catalog' });
+  } catch (err) {
+    await showCatalog();
+    error(`Impossible de charger ${e.title} : ${(err as Error).message}`);
+  }
+}
+
+async function showCredits(): Promise<void> {
+  show('credits');
+  const list = await loadCatalog().catch(() => [] as CatalogEntry[]);
+  $('credits-list').replaceChildren(
+    ...list.map((e) => {
+      const li = document.createElement('li');
+      const lic = el('a', '', e.license);
+      lic.href = e.licenseUrl;
+      lic.target = '_blank';
+      lic.rel = 'noopener';
+      const src = el('a', '', 'source');
+      src.href = e.source;
+      src.target = '_blank';
+      src.rel = 'noopener';
+      li.append(el('b', '', e.title), ` — ${e.artist} · `, lic, ' · ', src);
+      if (e.attribution) li.append(el('div', 'hint', e.attribution));
+      return li;
+    }),
+  );
+}
+
+$('btn-catalog').addEventListener('click', () => void showCatalog());
+$('btn-catalog-back').addEventListener('click', () => show('menu'));
+$('btn-credits').addEventListener('click', () => void showCredits());
+$('btn-credits-back').addEventListener('click', () => void showCatalog());
+
 async function renderRecent(): Promise<void> {
-  const list = await listTracks();
+  // les morceaux du catalogue ont leur propre écran
+  const list = (await listTracks()).filter((r) => !r.hash.startsWith('cat:'));
   const ul = $('recent-list');
   ul.replaceChildren(
     ...list.map((r) => {

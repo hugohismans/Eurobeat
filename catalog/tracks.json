@@ -1,0 +1,24 @@
+[
+  {
+    "id": "fever-stadium",
+    "title": "Fever Stadium",
+    "artist": "MintoDog",
+    "style": "Eurobeat",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/node/162191",
+    "url": "https://opengameart.org/sites/default/files/fever_stadium_bpm165.mp3",
+    "override": { "bpm": 165 }
+  },
+  {
+    "id": "fever-stadium-climax",
+    "title": "Fever Stadium (Climax)",
+    "artist": "MintoDog",
+    "style": "Eurobeat",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://opengameart.org/node/162191",
+    "url": "https://opengameart.org/sites/default/files/fever_stadium_climax_bpm180.mp3",
+    "override": { "bpm": 180 }
+  }
+]

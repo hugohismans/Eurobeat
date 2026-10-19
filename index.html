@@ -38,7 +38,10 @@
             <button class="seg-btn" data-diff="medium" role="radio">Moyen</button>
             <button class="seg-btn" data-diff="expert" role="radio">Expert</button>
           </div>
-          <label class="btn primary file-btn" for="file-input">Choisir un fichier audio</label>
+          <div class="col">
+            <button id="btn-catalog" class="btn primary">Catalogue</button>
+            <label class="btn file-btn" for="file-input">Mon fichier audio</label>
+          </div>
           <input id="file-input" type="file" accept="audio/*,.mp3,.ogg,.wav,.flac,.m4a" hidden />
           <p class="hint drop-hint">ou glisse un MP3 / OGG / WAV sur la fenêtre</p>
           <div class="test-track">
@@ -73,6 +76,28 @@
             </label>
           </div>
           <p class="help">Tap · Espace · Clic : inverser la gravité<br />Échap / bouton ❚❚ : pause · H : hitboxes</p>
+        </div>
+      </section>
+
+      <section id="catalog" class="screen hidden">
+        <div class="panel wide">
+          <h2>Catalogue</h2>
+          <p class="sub">Morceaux libres de droits, prêts à jouer.</p>
+          <ul id="catalog-list" class="catalog-list"></ul>
+          <p id="catalog-status" class="hint"></p>
+          <div class="row">
+            <button id="btn-credits" class="btn">Crédits</button>
+            <button id="btn-catalog-back" class="btn">Retour</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="credits" class="screen hidden">
+        <div class="panel wide">
+          <h2>Crédits</h2>
+          <ul id="credits-list" class="credits-list"></ul>
+          <p class="hint">Jeu : code et visuels procéduraux du projet. Musique : chaque morceau garde sa licence d'origine, indiquée ci-dessus.</p>
+          <button id="btn-credits-back" class="btn">Retour</button>
         </div>
       </section>
 
@@ -122,7 +147,7 @@
           </div>
 
           <div class="block">
-            <div class="block-head"><span class="label">Sections</span><button id="btn-reset" class="btn link">Revenir à l'analyse</button></div>
+            <div class="block-head"><span class="label">Sections</span><button id="btn-reset" class="btn link">Réglages d'origine</button></div>
             <canvas id="timeline" class="timeline"></canvas>
             <p class="hint">Touche une section pour changer son type.</p>
           </div>

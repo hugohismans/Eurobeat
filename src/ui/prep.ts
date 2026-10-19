@@ -14,11 +14,14 @@ export interface PrepTrack {
   track: AudioTrack;
   analysis: Analysis;
   music: MusicInfo;
+  /** réglages de référence (catalogue) ; sinon ceux de l'analyse */
+  defaults?: MusicInfo;
+  origin: 'catalog' | 'file';
 }
 
 export interface PrepHooks {
   onPlay(practice: boolean): void;
-  onBack(): void;
+  onBack(origin: PrepTrack['origin']): void;
   onSave(music: MusicInfo): void;
 }
 
@@ -67,13 +70,13 @@ export class PrepScreen {
       const ch = this.music.sections.find((s) => s.type === 'chorus');
       this.preview(Math.max(0, (ch?.start ?? 0) - 1));
     });
-    $('btn-reset').addEventListener('click', () => this.cur && this.update(musicFromAnalysis(this.cur.analysis)));
+    $('btn-reset').addEventListener('click', () => this.cur && this.update(structuredClone(this.cur.defaults ?? musicFromAnalysis(this.cur.analysis))));
     $('btn-prep-play').addEventListener('click', () => this.play(false));
     $('btn-prep-practice').addEventListener('click', () => this.play(true));
     $('btn-export').addEventListener('click', () => this.exportJson());
     $('btn-prep-back').addEventListener('click', () => {
       this.close();
-      this.hooks.onBack();
+      this.hooks.onBack(this.cur?.origin ?? 'file');
     });
     new ResizeObserver(() => this.timeline.draw()).observe($('timeline'));
   }
@@ -127,7 +130,7 @@ export class PrepScreen {
 
   private render(): void {
     const m = this.music;
-    const a = this.cur!.analysis;
+    const a = this.cur!.defaults ?? this.cur!.analysis;
     if (document.activeElement !== this.bpmInput) this.bpmInput.value = m.bpm.toFixed(2);
     $('offset-value').textContent = `${m.offset} ms`;
     const mins = Math.floor(m.duration / 60);

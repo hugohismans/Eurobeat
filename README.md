@@ -12,8 +12,17 @@ npm run check-level     # le bot valide le niveau de test à ±tolérance
 npm run check-analysis  # BPM / offset / sections sur des pistes générées (nécessite ffmpeg)
 npm run check-analysis -- morceau.mp3   # analyse d'un fichier quelconque
 npm run track        # régénère public/audio/test-150.wav
+npm run catalog      # télécharge, ré-encode et analyse les morceaux de catalog/tracks.json
 npm run build        # dist/ (déployé sur GitHub Pages par .github/workflows/deploy.yml)
 ```
+
+## Catalogue
+
+Les morceaux libres de droits (CC0 / CC BY uniquement) sont décrits dans `catalog/tracks.json` :
+titre, auteur, licence, page source, URL du fichier et corrections manuelles éventuelles
+(`override` : `bpm`, `offset`, `sections`). `npm run catalog` produit `public/catalog/` (MP3 160 kbps
++ `catalog.json`) et met à jour le tableau des licences d'`ASSETS.md`. Pour régler un morceau, ouvre-le
+dans le jeu, corrige-le sur l'écran de préparation, « Exporter JSON », puis reporte les valeurs dans `override`.
 
 ## Contrôles
 
