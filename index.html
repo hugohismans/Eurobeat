@@ -30,20 +30,32 @@
       <section id="menu" class="screen">
         <div class="panel">
           <h1><span class="t1">GRAVITY</span><span class="t2">DRIFT</span></h1>
-          <p class="sub">Piste de test · Eurobeat synthétique · 150 BPM</p>
-          <div class="row">
-            <button id="btn-play" class="btn primary">Jouer</button>
-            <button id="btn-practice" class="btn">Practice</button>
+          <p class="sub">Choisis un morceau : le niveau est généré depuis la musique.</p>
+          <label class="btn primary file-btn" for="file-input">Choisir un fichier audio</label>
+          <input id="file-input" type="file" accept="audio/*,.mp3,.ogg,.wav,.flac,.m4a" hidden />
+          <p class="hint drop-hint">ou glisse un MP3 / OGG / WAV sur la fenêtre</p>
+          <div class="test-track">
+            <span>Piste de test · 150 BPM</span>
+            <span class="row tight">
+              <button id="btn-play" class="btn">Jouer</button>
+              <button id="btn-practice" class="btn">Practice</button>
+            </span>
+          </div>
+          <div id="recent" class="recent hidden">
+            <h3>Déjà analysés</h3>
+            <ul id="recent-list"></ul>
+            <p class="hint">L'audio n'est pas stocké : rechoisis le fichier, son analyse et tes corrections sont retrouvées.</p>
           </div>
           <div class="settings">
-            <label class="setting">
+            <div class="setting">
               <span>Latence</span>
               <span class="stepper">
-                <button data-lat="-10" class="btn mini">−</button>
+                <button data-lat="-10" class="btn mini" aria-label="Latence −10 ms">−</button>
                 <output id="latency">0 ms</output>
-                <button data-lat="10" class="btn mini">+</button>
+                <button data-lat="10" class="btn mini" aria-label="Latence +10 ms">+</button>
+                <button id="btn-calibrate" class="btn mini wide">Calibrer</button>
               </span>
-            </label>
+            </div>
             <label class="setting">
               <span>Flip en l'air (test)</span>
               <input id="opt-airflip" type="checkbox" />
@@ -53,7 +65,83 @@
         </div>
       </section>
 
-      <section id="loading" class="screen hidden"><div class="panel"><p>Chargement…</p></div></section>
+      <section id="loading" class="screen hidden">
+        <div class="panel">
+          <p id="loading-text">Chargement…</p>
+          <div class="progress big"><div id="loading-bar"></div></div>
+        </div>
+      </section>
+
+      <section id="prep" class="screen hidden">
+        <div class="panel wide">
+          <h2 id="prep-title" class="track-title"></h2>
+          <p id="prep-meta" class="sub"></p>
+
+          <div class="block">
+            <div class="block-head">
+              <span class="label">Tempo</span>
+              <span id="prep-confidence" class="badge"></span>
+            </div>
+            <div class="big-value"><input id="bpm-input" type="number" step="0.01" min="40" max="300" inputmode="decimal" /> <small>BPM</small></div>
+            <div class="chips">
+              <button class="btn chip" data-bpm="half">÷2</button>
+              <button class="btn chip" data-bpm="double">×2</button>
+              <button class="btn chip" data-bpm="-1">−1</button>
+              <button class="btn chip" data-bpm="-0.1">−0.1</button>
+              <button class="btn chip" data-bpm="0.1">+0.1</button>
+              <button class="btn chip" data-bpm="1">+1</button>
+            </div>
+            <button id="btn-tap" class="btn tap">Tap tempo <small id="tap-info"></small></button>
+          </div>
+
+          <div class="block">
+            <div class="block-head"><span class="label">Premier temps fort</span><span id="offset-value" class="value"></span></div>
+            <div class="chips four">
+              <button class="btn chip" data-off="-beat">−1 temps</button>
+              <button class="btn chip" data-off="-10">−10 ms</button>
+              <button class="btn chip" data-off="10">+10 ms</button>
+              <button class="btn chip" data-off="beat">+1 temps</button>
+            </div>
+            <div class="preview">
+              <button id="btn-preview" class="btn">▶ Écouter avec le métronome</button>
+              <button id="btn-preview-chorus" class="btn">▶ Refrain</button>
+              <span class="beat-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            </div>
+            <p class="hint">Le clic aigu doit tomber sur le temps 1 de chaque mesure.</p>
+          </div>
+
+          <div class="block">
+            <div class="block-head"><span class="label">Sections</span><button id="btn-reset" class="btn link">Revenir à l'analyse</button></div>
+            <canvas id="timeline" class="timeline"></canvas>
+            <p class="hint">Touche une section pour changer son type.</p>
+          </div>
+
+          <div class="col">
+            <div class="row">
+              <button id="btn-prep-play" class="btn primary">Jouer</button>
+              <button id="btn-prep-practice" class="btn">Practice</button>
+            </div>
+            <div class="row">
+              <button id="btn-export" class="btn">Exporter JSON</button>
+              <button id="btn-prep-back" class="btn">Retour</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="calibrate" class="screen hidden">
+        <div class="panel">
+          <h2>Calibration</h2>
+          <p class="sub">Tape sur chaque clic, après les 4 premiers.</p>
+          <div id="calib-pulse" class="calib-pulse"></div>
+          <p id="calib-status" class="detail"></p>
+          <div class="col">
+            <button id="btn-calib-start" class="btn primary">Démarrer</button>
+            <button id="btn-calib-apply" class="btn hidden">Appliquer</button>
+            <button id="btn-calib-back" class="btn">Retour</button>
+          </div>
+        </div>
+      </section>
 
       <section id="pause" class="screen hidden">
         <div class="panel">

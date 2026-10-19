@@ -9,7 +9,8 @@
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit",
     "track": "node scripts/make-test-track.mjs",
-    "check-level": "tsx scripts/check-level.ts"
+    "check-level": "tsx scripts/check-level.ts",
+    "check-analysis": "tsx scripts/check-analysis.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

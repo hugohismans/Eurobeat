@@ -8,7 +8,9 @@ Vite + TypeScript + Canvas 2D, 100 % statique.
 ```sh
 npm install
 npm run dev          # http://localhost:5173 (et l'IP réseau pour tester sur mobile)
-npm run check-level  # le bot valide le niveau de test à ±tolérance
+npm run check-level     # le bot valide le niveau de test à ±tolérance
+npm run check-analysis  # BPM / offset / sections sur des pistes générées (nécessite ffmpeg)
+npm run check-analysis -- morceau.mp3   # analyse d'un fichier quelconque
 npm run track        # régénère public/audio/test-150.wav
 npm run build        # dist/ (déployé sur GitHub Pages par .github/workflows/deploy.yml)
 ```
@@ -30,6 +32,12 @@ Tap / clic / Espace / ↑ : inverser la gravité · Échap ou ❚❚ : pause · 
 | `src/game/bot.ts` | Bot de validation (extrêmes, alternés, aléatoires dans la tolérance) |
 | `src/game/game.ts` | Horloge musicale → simulation → rendu interpolé, mort / practice / pause |
 | `src/audio/track.ts` | Horloge Web Audio (`getOutputTimestamp`, latence calibrable) |
+| `src/analysis/dsp.ts` | Analyse pure : flux spectral, tempo (autocorrélation + alignement de grille), temps 1, sections (auto-similarité + énergie) |
+| `src/analysis/worker.ts` | L'analyse tourne dans un Web Worker |
+| `src/analysis/cache.ts` | Cache IndexedDB (analyse + corrections, clé = SHA-256 du fichier, jamais l'audio) |
+| `src/game/generate.ts` | Générateur provisoire (motifs par section + réparation par le bot), remplacé à l'étape 3 |
+| `src/ui/prep.ts` | Écran de préparation : BPM (÷2, ×2, fin, tap tempo), temps 1, écoute au métronome, sections, export JSON |
+| `src/ui/calibrate.ts` | Calibration de latence au tap |
 | `src/render/` | Rendu néon procédural (glow sans `shadowBlur`, décors pré-rendus, particules plafonnées) |
 
 Principe de synchro : la position horizontale est une fonction pure du temps du morceau ;

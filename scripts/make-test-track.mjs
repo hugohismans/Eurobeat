@@ -1,13 +1,17 @@
 // Génère public/audio/test-150.wav : une piste "Eurobeat" synthétique à 150 BPM,
 // structure connue (sert de vérité terrain pour l'analyse de l'étape 2).
-// Usage : node scripts/make-test-track.mjs
+// Usage : node scripts/make-test-track.mjs [--bpm 150] [--offset 0.2] [--out chemin.wav]
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const arg = (name, def) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i > 0 ? process.argv[i + 1] : def;
+};
 const SR = 22050;
-const BPM = 150;
-const OFFSET = 0.2; // s, premier temps fort
+const BPM = Number(arg('bpm', 150));
+const OFFSET = Number(arg('offset', 0.2)); // s, premier temps fort
 const BEAT = 60 / BPM;
 const BAR = BEAT * 4;
 
@@ -138,7 +142,7 @@ for (let i = 0; i < N; i++) {
   const v = Math.tanh((out[i] / peak) * 1.4) * 0.95;
   pcm.writeInt16LE(Math.round(v * 32767), 44 + i * 2);
 }
-const file = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'audio', 'test-150.wav');
+const file = arg('out', join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'audio', 'test-150.wav'));
 mkdirSync(dirname(file), { recursive: true });
 writeFileSync(file, pcm);
 console.log(`écrit ${file} (${duration.toFixed(1)} s, ${(pcm.length / 1e6).toFixed(1)} Mo)`);

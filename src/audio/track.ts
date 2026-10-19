@@ -12,6 +12,28 @@ export interface MusicClock {
 
 let sharedCtx: AudioContext | null = null;
 
+/** Temps contexte actuellement entendu (corrigé de la latence de sortie quand le navigateur la connaît). */
+export function heardTime(ctx: AudioContext): number {
+  const ts = ctx.getOutputTimestamp?.();
+  if (ts && ts.contextTime && ts.performanceTime) {
+    return ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
+  }
+  return ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+}
+
+/** Clic de métronome programmé au temps contexte `when`. */
+export function click(ctx: AudioContext, when: number, accent: boolean, gain = 0.5): void {
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.frequency.value = accent ? 1760 : 1100;
+  g.gain.setValueAtTime(0, when);
+  g.gain.linearRampToValueAtTime(gain, when + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(when);
+  osc.stop(when + 0.06);
+}
+
 /** À appeler dans un geste utilisateur (exigence mobile). */
 export function audioContext(): AudioContext {
   if (!sharedCtx) {
@@ -56,14 +78,21 @@ export class AudioTrack implements MusicClock {
     return this.buffer.duration;
   }
 
-  /** Temps contexte actuellement entendu. */
   private heard(): number {
-    const ctx = this.ctx;
-    const ts = ctx.getOutputTimestamp?.();
-    if (ts && ts.contextTime && ts.performanceTime) {
-      return ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
-    }
-    return ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+    return heardTime(this.ctx);
+  }
+
+  get context(): AudioContext {
+    return this.ctx;
+  }
+
+  get isPlaying(): boolean {
+    return this.playing;
+  }
+
+  /** Temps contexte (repère currentTime) où le temps morceau `songTime` sera joué : pour programmer des sons. */
+  ctxTimeOf(songTime: number): number {
+    return this.origin + songTime;
   }
 
   now(): number {

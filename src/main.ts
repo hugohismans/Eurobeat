@@ -1,19 +1,27 @@
 import './style.css';
+import { analyzeBuffer, hashBytes, isCurrent, musicFromAnalysis } from './analysis/analyze';
+import { deleteTrack, getTrack, listTracks, putTrack } from './analysis/cache';
 import { AudioTrack, audioContext } from './audio/track';
 import { CONFIG } from './config';
 import { Game, type EndInfo, type GameState } from './game/game';
+import { generateLevel } from './game/generate';
 import { sideAt, type Level } from './game/level';
 import { Run } from './game/sim';
 import { createTestLevel, TEST_TRACK_URL } from './game/testLevel';
 import { Renderer } from './render/renderer';
+import { Calibration } from './ui/calibrate';
 import { bindInput } from './ui/input';
+import { PrepScreen } from './ui/prep';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const canvas = $<HTMLCanvasElement>('game');
 const renderer = new Renderer(canvas);
-let level: Level = createTestLevel();
-let track: AudioTrack | null = null;
+/** niveau de la démo d'accueil */
+let demoLevel: Level = createTestLevel();
+let testTrack: AudioTrack | null = null;
+/** morceau en cours : piste de test ou fichier du joueur (passé par l'écran de préparation) */
+let session: { kind: 'test' | 'file'; level: Level; track: AudioTrack } | null = null;
 let game: Game | null = null;
 let attractRaf = 0;
 
@@ -29,7 +37,8 @@ let latencyMs = loadLatency();
 function setLatency(v: number): void {
   latencyMs = Math.max(-300, Math.min(500, v));
   $('latency').textContent = `${latencyMs} ms`;
-  if (track) track.latencyMs = latencyMs;
+  // appliquée aux pistes au lancement (startGame / openFile)
+  if (session) session.track.latencyMs = latencyMs;
   try {
     localStorage.setItem(CONFIG.storage.latencyKey, String(latencyMs));
   } catch {
@@ -43,15 +52,18 @@ const airFlip = $<HTMLInputElement>('opt-airflip');
 airFlip.checked = CONFIG.physics.airFlip;
 airFlip.addEventListener('change', () => {
   CONFIG.physics.airFlip = airFlip.checked;
-  level = createTestLevel(); // les obstacles dépendent de ce réglage
+  demoLevel = createTestLevel(); // les obstacles dépendent de ce réglage
 });
 
 // ---------- écrans ----------
-const screens = ['menu', 'loading', 'pause', 'end'] as const;
+const screens = ['menu', 'loading', 'prep', 'calibrate', 'pause', 'end'] as const;
 type Screen = (typeof screens)[number] | null;
-function show(screen: Screen): void {
-  for (const s of screens) $(s).classList.toggle('hidden', s !== screen);
-  $('hud').classList.toggle('hidden', screen === 'menu' || screen === 'loading');
+let screen: Screen = 'menu';
+function show(next: Screen): void {
+  screen = next;
+  for (const s of screens) $(s).classList.toggle('hidden', s !== next);
+  $('hud').classList.toggle('hidden', next !== null && next !== 'pause' && next !== 'end');
+  if (next === 'menu') void renderRecent();
 }
 
 function error(msg: string): void {
@@ -120,36 +132,157 @@ function onEnd(e: EndInfo): void {
 }
 
 // ---------- démarrage ----------
-async function startGame(practice: boolean): Promise<void> {
-  const ctx = audioContext(); // dans le geste utilisateur
+function startGame(level: Level, track: AudioTrack, kind: 'test' | 'file', practice: boolean): void {
+  audioContext(); // dans le geste utilisateur
   stopAttract();
-  try {
-    if (!track) {
-      show('loading');
-      track = await AudioTrack.fromUrl(ctx, TEST_TRACK_URL);
-      track.latencyMs = latencyMs;
-    }
-  } catch (e) {
-    show('menu');
-    startAttract();
-    error(`Impossible de charger la piste : ${(e as Error).message}`);
-    return;
-  }
+  track.latencyMs = latencyMs;
+  session = { kind, level, track };
   game?.destroy();
   game = new Game(level, track, renderer, { onHud, onEnd, onState });
   show(null);
   game.start(practice);
 }
 
+async function playTestTrack(practice: boolean): Promise<void> {
+  const ctx = audioContext(); // dans le geste utilisateur
+  try {
+    if (!testTrack) {
+      loading('Chargement de la piste de test…', 0.3);
+      testTrack = await AudioTrack.fromUrl(ctx, TEST_TRACK_URL);
+    }
+  } catch (e) {
+    show('menu');
+    error(`Impossible de charger la piste : ${(e as Error).message}`);
+    return;
+  }
+  startGame(createTestLevel(), testTrack, 'test', practice);
+}
+
 function toMenu(): void {
   game?.destroy();
   game = null;
-  show('menu');
+  if (session?.kind === 'file' && prep.current) {
+    // retour à la préparation du morceau
+    renderer.particles.clear();
+    show('prep');
+    prep.open(prep.current);
+  } else {
+    show('menu');
+  }
+  session = null;
   startAttract();
 }
 
-$('btn-play').addEventListener('click', () => void startGame(false));
-$('btn-practice').addEventListener('click', () => void startGame(true));
+// ---------- fichier audio : décodage, analyse (Worker), cache ----------
+function loading(text: string, p: number): void {
+  show('loading');
+  $('loading-text').textContent = text;
+  $('loading-bar').style.width = `${Math.round(p * 100)}%`;
+}
+
+async function openFile(file: File): Promise<void> {
+  const ctx = audioContext();
+  try {
+    loading(`Lecture de ${file.name}…`, 0.05);
+    const bytes = await file.arrayBuffer();
+    const hash = await hashBytes(bytes);
+    loading('Décodage…', 0.1);
+    const track = await AudioTrack.fromArrayBuffer(ctx, bytes); // détache `bytes`
+    let rec = await getTrack(hash);
+    if (!rec || !isCurrent(rec.analysis)) {
+      const analysis = await analyzeBuffer(track.buffer, (p) => loading('Analyse : tempo, premier temps fort, sections…', 0.15 + p * 0.85));
+      rec = { hash, name: file.name, analysis, music: musicFromAnalysis(analysis), updatedAt: Date.now() };
+      await putTrack(rec);
+    }
+    track.latencyMs = latencyMs;
+    show('prep');
+    prep.open({ name: rec.name, hash, track, analysis: rec.analysis, music: rec.music });
+  } catch (e) {
+    show('menu');
+    error(`Fichier illisible (${(e as Error).message}). Formats conseillés : MP3, OGG, WAV.`);
+  }
+}
+
+const prep = new PrepScreen({
+  onPlay: (practice) => {
+    const cur = prep.current!;
+    loading('Génération du niveau…', 1);
+    // laisser l'écran se peindre avant le calcul (≈ 200 ms)
+    setTimeout(() => startGame(generateLevel(cur.music, cur.hash), cur.track, 'file', practice), 30);
+  },
+  onBack: () => show('menu'),
+  onSave: (music) => {
+    const cur = prep.current;
+    if (cur) void putTrack({ hash: cur.hash, name: cur.name, analysis: cur.analysis, music, updatedAt: Date.now() });
+  },
+});
+
+const fileInput = $<HTMLInputElement>('file-input');
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files?.[0];
+  fileInput.value = '';
+  if (f) void openFile(f);
+});
+
+// glisser-déposer (PC)
+window.addEventListener('dragover', (e) => {
+  if (screen !== 'menu') return;
+  e.preventDefault();
+  document.body.classList.add('dragging');
+});
+window.addEventListener('dragleave', () => document.body.classList.remove('dragging'));
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  document.body.classList.remove('dragging');
+  const f = e.dataTransfer?.files?.[0];
+  if (f && screen === 'menu') void openFile(f);
+});
+
+async function renderRecent(): Promise<void> {
+  const list = await listTracks();
+  const ul = $('recent-list');
+  ul.replaceChildren(
+    ...list.map((r) => {
+      const li = document.createElement('li');
+      const name = document.createElement('span');
+      name.textContent = r.name;
+      const bpm = document.createElement('small');
+      bpm.textContent = `${r.music.bpm} BPM`;
+      const del = document.createElement('button');
+      del.textContent = '✕';
+      del.setAttribute('aria-label', `Oublier ${r.name}`);
+      del.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await deleteTrack(r.hash);
+        void renderRecent();
+      });
+      li.addEventListener('click', () => fileInput.click());
+      li.append(name, bpm, del);
+      return li;
+    }),
+  );
+  $('recent').classList.toggle('hidden', list.length === 0);
+}
+
+// ---------- calibration ----------
+const calibration = new Calibration($('calibrate'), $('calib-pulse'), $('calib-status'), (ms) => $('btn-calib-apply').classList.toggle('hidden', ms === null));
+$('btn-calibrate').addEventListener('click', () => {
+  $('calib-status').textContent = '';
+  $('btn-calib-apply').classList.add('hidden');
+  show('calibrate');
+});
+$('btn-calib-start').addEventListener('click', () => calibration.start());
+$('btn-calib-apply').addEventListener('click', () => {
+  if (calibration.result !== null) setLatency(calibration.result);
+  show('menu');
+});
+$('btn-calib-back').addEventListener('click', () => {
+  calibration.stop();
+  show('menu');
+});
+
+$('btn-play').addEventListener('click', () => void playTestTrack(false));
+$('btn-practice').addEventListener('click', () => void playTestTrack(true));
 $('btn-resume').addEventListener('click', () => game?.resume());
 $('btn-restart').addEventListener('click', () => game?.restart());
 $('btn-menu').addEventListener('click', toMenu);
@@ -183,6 +316,8 @@ window.addEventListener('resize', () => renderer.resize());
 
 // ---------- écran d'accueil : démo jouée par le bot (sans audio) ----------
 function startAttract(): void {
+  stopAttract();
+  const level = demoLevel;
   const from = level.music.sections[1]?.start ?? 0;
   let run: Run | null = null;
   let t0 = 0;
@@ -210,5 +345,5 @@ startAttract();
 
 // accès console / tests automatisés en dev uniquement
 if (import.meta.env.DEV) {
-  Object.assign(window, { __gd: { get level() { return level; }, get game() { return game; }, get track() { return track; } } });
+  Object.assign(window, { __gd: { get level() { return session?.level; }, get game() { return game; }, get track() { return session?.track; }, prep } });
 }
