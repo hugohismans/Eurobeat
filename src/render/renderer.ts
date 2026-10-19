@@ -117,6 +117,10 @@ export class Renderer {
 
   // ---------- frame ----------
   draw(s: FrameState): void {
+    // rotation portrait ↔ paysage : sur iOS l'événement resize arrive avant la nouvelle mise en page,
+    // on compare donc la taille réelle à chaque image (lecture sans coût si rien n'a bougé)
+    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.render.maxDpr);
+    if (this.canvas.clientWidth && (this.canvas.clientWidth !== this.w || this.canvas.clientHeight !== this.h || dpr !== this.dpr)) this.resize();
     const ctx = this.ctx;
     const { level, t } = s;
     this.fps += (1 / Math.max(s.dt, 1e-3) - this.fps) * 0.05;

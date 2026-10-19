@@ -69,7 +69,7 @@ export class PrepScreen {
       this.close();
       this.hooks.onBack();
     });
-    window.addEventListener('resize', () => this.timeline.draw());
+    new ResizeObserver(() => this.timeline.draw()).observe($('timeline'));
   }
 
   get music(): MusicInfo {
