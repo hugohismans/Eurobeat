@@ -504,5 +504,5 @@ startAttract();
 
 // accès console / tests automatisés en dev uniquement
 if (import.meta.env.DEV) {
-  Object.assign(window, { __gd: { get level() { return session?.level; }, get game() { return game; }, get track() { return session?.track; }, prep, decodeOptions } });
+  Object.assign(window, { __gd: { get level() { return session?.level; }, get game() { return game; }, get track() { return session?.track; }, prep, decodeOptions, renderer } });
 }

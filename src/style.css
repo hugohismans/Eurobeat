@@ -770,3 +770,15 @@ h3 {
 #catalog .panel {
   max-height: 100%;
 }
+
+/* ---------- police d'affichage : Dela Gothic One (OFL), réduite aux caractères du jeu ---------- */
+@font-face {
+  font-family: 'Dela Gothic One';
+  src: url('/assets/fonts/dela-gothic-one-subset.woff2') format('woff2');
+  font-display: swap;
+}
+h1,
+h2 {
+  font-family: 'Dela Gothic One', system-ui, sans-serif;
+  font-weight: 400;
+}

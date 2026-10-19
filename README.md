@@ -50,7 +50,10 @@ Tap / clic / Espace / ↑ : inverser la gravité · Échap ou ❚❚ : pause · 
 | `src/game/difficulty.ts` | Modes Facile / Moyen / Expert (tolérance, taille des obstacles, vitesse, densité) |
 | `src/ui/prep.ts` | Écran de préparation : BPM (÷2, ×2, fin, tap tempo), temps 1, écoute au métronome, sections, export JSON |
 | `src/ui/calibrate.ts` | Calibration de latence au tap |
-| `src/render/` | Rendu néon procédural (glow sans `shadowBlur`, décors pré-rendus, particules plafonnées) |
+| `src/render/renderer.ts` | Rendu néon (glow sans `shadowBlur`), looping, qualité adaptative (réduite si < 45 i/s) |
+| `src/render/car.ts` | Coupé japonais années 80 générique, vectoriel, jantes qui tournent, flamme d'échappement |
+| `src/render/scenery.ts` | Soleil synthwave, piliers et portiques d'autoroute, reflets mouillés, lignes de vitesse, bandeau DRIFT |
+| `src/render/fx.ts` | Particules texturées (Kenney, CC0) teintées à la volée, secours procédural |
 
 Principe de synchro : la position horizontale est une fonction pure du temps du morceau ;
 seul le Y est simulé (pas fixe), et les taps sont convertis en temps morceau via

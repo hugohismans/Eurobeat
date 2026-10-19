@@ -3,6 +3,9 @@ import { rng, type Level } from '../game/level';
 import { laneAt } from '../game/physics';
 import type { Obstacle, Platform, Section } from '../game/types';
 import { brighten, css, mixPalette, PALETTES, type Palette, type RGB } from './palette';
+import { carGhost, drawCarBody } from './car';
+import { FxAtlas } from './fx';
+import { buildGantries, buildSun, drawDriftBanner, drawGantries, drawPillars, drawWetGlow, SpeedLines, type View } from './scenery';
 import { Particles } from './particles';
 
 const H = CONFIG.world.corridorHeight;
@@ -66,6 +69,25 @@ export class Renderer {
   private flash = 0;
   private fps = 60;
   private hitFlash = 0;
+  private ghosts: { x: number; y: number; grav: number; lo: number; hi: number }[] = [];
+  private sun: HTMLCanvasElement | null = null;
+  private readonly fx = new FxAtlas();
+  private lastBeat = -1;
+  /** qualité réduite automatiquement si l'appareil n'arrive pas à suivre */
+  low = false;
+  autoQuality = true;
+  private slowTime = 0;
+  private gantrySigns: HTMLCanvasElement[] = [];
+  private readonly speedLines = new SpeedLines();
+  private speedStrength = 0;
+  private readonly view: View = {
+    w: 0,
+    h: 0,
+    scale: 1,
+    camX: 0,
+    ext: 20,
+    sx: (x: number) => this.sx(x),
+  };
   /** débord horizontal des couches monde (agrandi pendant un looping, quand la vue tourne) */
   private ext = 20;
 
@@ -77,10 +99,12 @@ export class Renderer {
     for (let i = 0; i < CONFIG.render.rainDrops; i++) this.drops.push({ x: r(), y: r(), len: 0.02 + r() * 0.04, v: 0.9 + r() * 0.8 });
     for (let i = 0; i < 14; i++) this.trails.push({ x: r() * 40, lane: r(), v: 8 + r() * 14, len: 1.5 + r() * 3, red: r() < 0.5, deck: (i % 2) as 0 | 1 });
     this.resize();
+    // enseignes et panneaux pré-rendus : on les refait quand la police japonaise est chargée
+    document.fonts?.load('24px "Dela Gothic One"', '東京ドリフト').then(() => this.buildBackdrops()).catch(() => {});
   }
 
   resize(): void {
-    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.render.maxDpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.low ? 1 : CONFIG.render.maxDpr);
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
     this.dpr = dpr;
@@ -107,7 +131,7 @@ export class Renderer {
     const y = fromFloor ? 0 : H;
     const dir = fromFloor ? 1 : -1;
     for (let i = 0; i < 10; i++) {
-      this.particles.emit(x + (Math.random() - 0.5) * 0.6, y, -4 - Math.random() * 6, dir * (2 + Math.random() * 6), 0.35, 0.09, color);
+      this.particles.emit(x + (Math.random() - 0.5) * 0.6, y, -4 - Math.random() * 6, dir * (2 + Math.random() * 6), 0.35, 0.09, color, true, 0, i % 3 ? 'dot' : 'star');
     }
   }
 
@@ -126,7 +150,7 @@ export class Renderer {
     for (let i = 0; i < 60; i++) {
       const a = Math.random() * Math.PI * 2;
       const v = 3 + Math.random() * 14;
-      this.particles.emit(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.5 + Math.random() * 0.6, 0.06 + Math.random() * 0.12, colors[i % colors.length]);
+      this.particles.emit(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.5 + Math.random() * 0.6, 0.06 + Math.random() * 0.12, colors[i % colors.length], true, 0, i % 4 ? 'dot' : 'star');
     }
     this.shake = 0.35;
     this.flash = 1;
@@ -136,11 +160,19 @@ export class Renderer {
   draw(s: FrameState): void {
     // rotation portrait ↔ paysage : sur iOS l'événement resize arrive avant la nouvelle mise en page,
     // on compare donc la taille réelle à chaque image (lecture sans coût si rien n'a bougé)
-    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.render.maxDpr);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.low ? 1 : CONFIG.render.maxDpr);
     if (this.canvas.clientWidth && (this.canvas.clientWidth !== this.w || this.canvas.clientHeight !== this.h || dpr !== this.dpr)) this.resize();
     const ctx = this.ctx;
     const { level, t } = s;
     this.fps += (1 / Math.max(s.dt, 1e-3) - this.fps) * 0.05;
+    // moins de 45 i/s pendant 3 s : on passe en qualité réduite (définitif pour la session)
+    if (this.autoQuality && !this.low) {
+      this.slowTime = this.fps < 45 ? this.slowTime + s.dt : Math.max(0, this.slowTime - s.dt);
+      if (this.slowTime > 3) {
+        this.low = true;
+        this.resize();
+      }
+    }
     this.particles.update(s.dt);
 
     const music = level.music;
@@ -174,6 +206,17 @@ export class Renderer {
     ctx.fillStyle = g;
     ctx.fillRect(-20, -20, this.w + 40, this.h + 40);
 
+    const v = this.view;
+    Object.assign(v, { w: this.w, h: this.h, scale: this.scale, camX: this.camX, ext: 20 });
+
+    // soleil synthwave, à moitié caché par la ville, qui grossit un peu sur le temps 1
+    if (this.sun && !this.low) {
+      const r = (this.sun.width / this.stripDpr / 2) * (1 + 0.025 * barPulse);
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(this.sun, this.w * 0.66 - r, yf * 0.3 - r, 2 * r, 2 * r);
+      ctx.globalAlpha = 1;
+    }
+
     // ville (parallaxe), reflet mouillé sous le sol
     this.drawStrip(this.far!, s.px * this.scale * 0.06, yf, 1);
     this.drawStrip(this.near!, s.px * this.scale * 0.18, yf, 1);
@@ -194,6 +237,10 @@ export class Renderer {
     rg.addColorStop(1, css(pal.skyTop, 0.95));
     ctx.fillStyle = rg;
     ctx.fillRect(-20, yf + deck, this.w + 40, this.h);
+
+    // structure de l'autoroute surélevée : piliers dessous, portiques au-dessus
+    if (!this.low) drawPillars(ctx, v, yf + deck, pal);
+    drawGantries(ctx, v, yc - deck, this.gantrySigns);
 
     // looping : la vue tourne d'un tour complet autour de la voiture
     const loop = level.loops.find((l) => t >= l.t0 && t <= l.t1);
@@ -217,9 +264,14 @@ export class Renderer {
     ctx.fillStyle = 'rgba(4,3,16,0.42)';
     ctx.fillRect(X0, yc, XW, yf - yc);
 
-    // tabliers d'autoroute (plafond et sol)
-    this.drawDeck(yc - deck, yc, pal, true);
-    this.drawDeck(yf, yf + deck, pal, false);
+    // tabliers d'autoroute (plafond et sol), grille pulsée, reflet mouillé des néons
+    v.ext = this.ext;
+    this.drawDeck(yc - deck, yc, pal, true, pulse);
+    this.drawDeck(yf, yf + deck, pal, false, pulse);
+    if (!this.low) {
+      drawWetGlow(ctx, v, yf, deck * 0.9, css(pal.neonA, 0.18 + 0.12 * pulse), true);
+      drawWetGlow(ctx, v, yc, deck * 0.9, css(pal.neonB, 0.18 + 0.12 * pulse), false);
+    }
     this.drawTrails(s, yc, yf, deck);
 
     // bords néon pulsés
@@ -239,13 +291,26 @@ export class Renderer {
     if (!s.dead && s.grounded && (chorus || intensity > 0.85)) {
       const surf = s.grav < 0 ? lane.lo : lane.hi;
       const dir = s.grav < 0 ? 1 : -1;
-      this.particles.emit(s.px - 0.55, surf + dir * 0.05, -3 - Math.random() * 3, dir * (0.5 + Math.random()), 0.55, 0.12, css(pal.neonA, 0.5), true, 0.5);
+      this.particles.emit(s.px - 0.6, surf + dir * 0.08, -3 - Math.random() * 3, dir * (0.4 + Math.random()), 0.6, 0.12, css(pal.neonA, 0.35), true, 0.7, 'smoke');
+    }
+    // étincelles sur chaque temps du refrain
+    const beatIdx = Math.floor(beatF);
+    if (beatIdx !== this.lastBeat) {
+      this.lastBeat = beatIdx;
+      if (chorus && !s.dead) for (let i = 0; i < 3; i++) this.particles.emit(s.px + (Math.random() - 0.3) * 2, s.py + (Math.random() - 0.5) * 2, -6 - Math.random() * 4, (Math.random() - 0.5) * 3, 0.45, 0.16, css(pal.neonB, 0.9), true, 0, 'star');
     }
     this.drawParticles();
     if (!s.dead) this.drawCar(s, pal, chorus || !!loop, lane.lo, lane.hi);
     ctx.restore();
 
-    this.drawRain(s.dt, intensity);
+    this.drawRain(s.dt, this.low ? intensity * 0.3 : intensity);
+
+    // lignes de vitesse en refrain / looping, bandeau DRIFT à l'entrée d'un refrain
+    const targetSpeed = loop ? 1 : chorus && !s.dead ? 0.55 + 0.45 * pulse : 0;
+    this.speedStrength += (targetSpeed - this.speedStrength) * Math.min(1, s.dt * 6);
+    v.ext = 20;
+    if (!this.low) this.speedLines.draw(ctx, v, s.dt, this.speedStrength);
+    if (chorus && section && !s.dead) drawDriftBanner(ctx, v, (t - section.start) / ((240 / music.bpm) * 1.5), pal);
 
     // flash plein écran sur les temps forts du refrain / à la mort
     if (chorus && barPulse > 0.05) {
@@ -287,7 +352,7 @@ export class Renderer {
     ctx.globalAlpha = prev;
   }
 
-  private drawDeck(y0: number, y1: number, pal: Palette, top: boolean): void {
+  private drawDeck(y0: number, y1: number, pal: Palette, top: boolean, pulse: number): void {
     const ctx = this.ctx;
     ctx.fillStyle = 'rgba(10,6,28,0.92)';
     ctx.fillRect(-this.ext, y0, this.w + 2 * this.ext, y1 - y0);
@@ -295,7 +360,7 @@ export class Renderer {
     const edge = top ? y1 : y0;
     const outer = top ? y0 : y1;
     const cx = this.w * 0.5;
-    ctx.strokeStyle = css(pal.neonB, 0.28);
+    ctx.strokeStyle = css(pal.neonB, 0.22 + 0.25 * pulse);
     ctx.lineWidth = 1;
     ctx.beginPath();
     const spacing = 2;
@@ -505,95 +570,55 @@ export class Renderer {
       const a = p.life / p.max;
       ctx.globalCompositeOperation = p.additive ? 'lighter' : 'source-over';
       ctx.globalAlpha = a;
-      ctx.fillStyle = p.color;
-      const r = p.size * this.scale;
-      ctx.fillRect(this.sx(p.x) - r, this.sy(p.y) - r, r * 2, r * 2);
+      const sprite = this.low && p.tex === 'smoke' ? null : this.fx.get(p.tex, p.color);
+      if (sprite) {
+        // texture : le halo s'étale au-delà du cœur de la particule
+        const r = p.size * this.scale * (p.tex === 'smoke' ? 3 : 2.6);
+        ctx.drawImage(sprite, this.sx(p.x) - r, this.sy(p.y) - r, r * 2, r * 2);
+      } else {
+        // secours procédural tant que l'atlas n'est pas chargé
+        ctx.fillStyle = p.color;
+        const r = p.size * this.scale;
+        ctx.fillRect(this.sx(p.x) - r, this.sy(p.y) - r, r * 2, r * 2);
+      }
     }
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
   }
 
-  /** Voiture JDM stylisée (procédurale), repère local : y vers le haut, unités monde. */
-  private drawCar(s: FrameState, pal: Palette, drift: boolean, lo: number, hi: number): void {
+  /** Transformation commune voiture / fantômes : y vers le haut, retournement progressif pendant le flip. */
+  private carTransform(px: number, py: number, grav: number, grounded: boolean, drift: boolean, lo: number, hi: number): void {
     const ctx = this.ctx;
     const HALF = CONFIG.player.size / 2;
-    const k = (s.py - lo - HALF) / Math.max(0.01, hi - lo - 2 * HALF);
+    const k = (py - lo - HALF) / Math.max(0.01, hi - lo - 2 * HALF);
     const flipY = Math.cos(Math.PI * Math.max(0, Math.min(1, k)));
-    ctx.save();
-    if (s.invuln) ctx.globalAlpha = Math.floor(performance.now() / 70) % 2 ? 0.25 : 0.9;
-    ctx.translate(this.sx(s.px), this.sy(s.py));
+    ctx.translate(this.sx(px), this.sy(py));
     ctx.scale(this.scale, -this.scale);
-    ctx.rotate((drift ? 0.1 : 0.03) * (s.grav < 0 ? 1 : -1) * (s.grounded ? 1 : 0.3));
+    ctx.rotate((drift ? 0.1 : 0.03) * (grav < 0 ? 1 : -1) * (grounded ? 1 : 0.3));
     ctx.scale(1, flipY >= 0 ? Math.max(flipY, 0.12) : Math.min(flipY, -0.12));
     ctx.translate(0, -HALF);
-    const line = 1 / this.scale;
+  }
 
-    // faisceau des phares
+  /** Voiture (render/car.ts) précédée d'une traînée fantôme pendant les flips. */
+  private drawCar(s: FrameState, pal: Palette, drift: boolean, lo: number, hi: number): void {
+    const ctx = this.ctx;
+    // fantômes : positions récentes en l'air
+    if (!s.grounded && !this.low) this.ghosts.push({ x: s.px, y: s.py, grav: s.grav, lo, hi });
+    else this.ghosts.length = 0;
+    if (this.ghosts.length > 5) this.ghosts.shift();
     ctx.globalCompositeOperation = 'lighter';
-    const beam = ctx.createLinearGradient(0.7, 0, 4, 0);
-    beam.addColorStop(0, 'rgba(255,240,200,0.35)');
-    beam.addColorStop(1, 'rgba(255,240,200,0)');
-    ctx.fillStyle = beam;
-    ctx.beginPath();
-    ctx.moveTo(0.72, 0.22);
-    ctx.lineTo(4, 0.55);
-    ctx.lineTo(4, -0.05);
-    ctx.closePath();
-    ctx.fill();
-    // néon sous caisse
-    ctx.fillStyle = css(pal.neonA, 0.45);
-    ctx.fillRect(-0.7, -0.02, 1.4, 0.07);
+    this.ghosts.forEach((g, i) => {
+      ctx.save();
+      this.carTransform(g.x, g.y, g.grav, false, drift, g.lo, g.hi);
+      carGhost(ctx, css(pal.neonB, 0.06 + 0.04 * i));
+      ctx.restore();
+    });
     ctx.globalCompositeOperation = 'source-over';
 
-    // carrosserie
-    ctx.beginPath();
-    ctx.moveTo(-0.78, 0.1);
-    ctx.lineTo(-0.78, 0.34);
-    ctx.lineTo(-0.42, 0.38);
-    ctx.lineTo(-0.18, 0.64);
-    ctx.lineTo(0.28, 0.64);
-    ctx.lineTo(0.5, 0.38);
-    ctx.lineTo(0.78, 0.33);
-    ctx.lineTo(0.8, 0.12);
-    ctx.closePath();
-    ctx.fillStyle = '#16102e';
-    ctx.fill();
-    ctx.lineJoin = 'round';
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = css(pal.neonB, 0.25);
-    ctx.lineWidth = line * 6;
-    ctx.stroke();
-    ctx.strokeStyle = css(brighten(pal.neonB, 0.3), 1);
-    ctx.lineWidth = line * 2;
-    ctx.stroke();
-    ctx.globalCompositeOperation = 'source-over';
-    // vitres
-    ctx.beginPath();
-    ctx.moveTo(-0.34, 0.4);
-    ctx.lineTo(-0.15, 0.58);
-    ctx.lineTo(0.25, 0.58);
-    ctx.lineTo(0.41, 0.4);
-    ctx.closePath();
-    ctx.fillStyle = css(pal.neonB, 0.3);
-    ctx.fill();
-    // bande latérale
-    ctx.fillStyle = css(pal.neonA, 0.9);
-    ctx.fillRect(-0.7, 0.24, 1.42, 0.035);
-    // feux
-    ctx.fillStyle = '#fff6d8';
-    ctx.fillRect(0.7, 0.2, 0.1, 0.06);
-    ctx.fillStyle = '#ff2848';
-    ctx.fillRect(-0.8, 0.22, 0.08, 0.07);
-    // roues
-    for (const wx of [-0.46, 0.46]) {
-      ctx.beginPath();
-      ctx.arc(wx, 0.12, 0.15, 0, Math.PI * 2);
-      ctx.fillStyle = '#05040c';
-      ctx.fill();
-      ctx.strokeStyle = css(pal.neonB, 0.9);
-      ctx.lineWidth = line * 1.5;
-      ctx.stroke();
-    }
+    ctx.save();
+    if (s.invuln) ctx.globalAlpha = Math.floor(performance.now() / 70) % 2 ? 0.25 : 0.9;
+    this.carTransform(s.px, s.py, s.grav, s.grounded, drift, lo, hi);
+    drawCarBody(ctx, { pal, distance: s.px, boost: drift, px: 1 / this.scale });
     ctx.restore();
   }
 
@@ -645,9 +670,11 @@ export class Renderer {
     this.stripDpr = Math.min(this.dpr, 1.5);
     const height = Math.max(120, this.sy(0));
     const width = 1400;
-    this.far = this.buildCity(width, height, 11, 0.45, 0.95, '#0b0b2a', 0.25);
-    this.near = this.buildCity(width, height, 23, 0.25, 0.75, '#120c33', 0.5);
+    this.far = this.buildCity(width, height, 11, 0.3, 0.68, '#0b0b2a', 0.25);
+    this.near = this.buildCity(width, height, 23, 0.2, 0.55, '#120c33', 0.5);
     this.signs = this.buildSigns(width, height, 31);
+    this.sun = buildSun(Math.min(this.w, this.h) * 0.2, this.stripDpr);
+    this.gantrySigns = buildGantries(this.scale, this.stripDpr);
   }
 
   private makeCanvas(w: number, h: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -702,7 +729,7 @@ export class Renderer {
       const bw = vertical ? size * 1.5 : size * chars.length + size;
       const bh = vertical ? size * chars.length * 1.15 + size * 0.6 : size * 1.7;
       const by = h * (0.25 + r() * 0.5) - bh;
-      ctx.font = `bold ${size}px "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`;
+      ctx.font = `${size}px "Dela Gothic One", "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round';

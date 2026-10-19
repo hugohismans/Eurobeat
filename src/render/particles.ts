@@ -1,4 +1,5 @@
 import { CONFIG } from '../config';
+import type { FxTexture } from './fx';
 
 /** Particules en coordonnées monde, pool fixe (pas d'allocation en jeu). */
 export interface Particle {
@@ -12,6 +13,7 @@ export interface Particle {
   grow: number;
   color: string;
   additive: boolean;
+  tex: FxTexture;
 }
 
 export class Particles {
@@ -20,17 +22,17 @@ export class Particles {
 
   constructor(private readonly cap = CONFIG.render.maxParticles) {}
 
-  emit(x: number, y: number, vx: number, vy: number, life: number, size: number, color: string, additive = true, grow = 0): void {
+  emit(x: number, y: number, vx: number, vy: number, life: number, size: number, color: string, additive = true, grow = 0, tex: FxTexture = 'dot'): void {
     let p: Particle;
     if (this.items.length < this.cap) {
-      p = { x, y, vx, vy, life, max: life, size, grow, color, additive };
+      p = { x, y, vx, vy, life, max: life, size, grow, color, additive, tex };
       this.items.push(p);
       return;
     }
     // pool plein : on recycle la plus ancienne
     p = this.items[this.head];
     this.head = (this.head + 1) % this.cap;
-    Object.assign(p, { x, y, vx, vy, life, max: life, size, grow, color, additive });
+    Object.assign(p, { x, y, vx, vy, life, max: life, size, grow, color, additive, tex });
   }
 
   update(dt: number): void {

@@ -1,10 +1,13 @@
 # Assets
 
-Visuels : aucun asset externe pour l'instant, tout est rendu de façon procédurale (Canvas 2D).
+La voiture, la ville, l'autoroute et la plupart des effets sont dessinés par le code (Canvas 2D,
+`src/render/`) : c'est aussi le rendu de secours si un fichier ci-dessous manque.
 
 | Fichier | Origine | Licence |
 | --- | --- | --- |
 | `public/audio/test-150.wav` | Synthétisé par `scripts/make-test-track.mjs` | Projet |
+| `public/assets/fonts/dela-gothic-one-subset.woff2` | [Dela Gothic One](https://fonts.google.com/specimen/Dela+Gothic+One), The Dela Gothic Project Authors, réduite aux caractères du jeu (API Google Fonts `text=`) | [SIL OFL 1.1](public/assets/fonts/OFL.txt) |
+| `public/assets/fx/particles.png` | [Particle Pack](https://kenney.nl/assets/particle-pack), Kenney : `circle_05`, `star_06`, `smoke_04`, `flare_01` réduits à 96 px et assemblés en atlas | [CC0 1.0](public/assets/fx/LICENSE-kenney-particle-pack.txt) |
 
 ## Musiques du catalogue
 
