@@ -3,6 +3,7 @@ import { analyzeBuffer, hashBytes, isCurrent, musicFromAnalysis } from './analys
 import { deleteTrack, getTrack, listTracks, putTrack } from './analysis/cache';
 import { AudioTrack, audioContext } from './audio/track';
 import { CONFIG } from './config';
+import { applyDifficulty, currentDifficulty, DIFFICULTIES, type Difficulty } from './game/difficulty';
 import { Game, type EndInfo, type GameState } from './game/game';
 import { generateLevel } from './game/generate';
 import { sideAt, type Level } from './game/level';
@@ -18,7 +19,7 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const canvas = $<HTMLCanvasElement>('game');
 const renderer = new Renderer(canvas);
 /** niveau de la démo d'accueil */
-let demoLevel: Level = createTestLevel();
+let demoLevel: Level;
 let testTrack: AudioTrack | null = null;
 /** morceau en cours : piste de test ou fichier du joueur (passé par l'écran de préparation) */
 let session: { kind: 'test' | 'file'; level: Level; track: AudioTrack } | null = null;
@@ -47,6 +48,37 @@ function setLatency(v: number): void {
 }
 setLatency(latencyMs);
 document.querySelectorAll<HTMLButtonElement>('[data-lat]').forEach((b) => b.addEventListener('click', () => setLatency(latencyMs + Number(b.dataset.lat))));
+
+// difficulté : appliquée avant toute construction de niveau, mémorisée
+const DIFF_KEY = 'gd.difficulty';
+function setDifficulty(d: Difficulty): void {
+  applyDifficulty(d);
+  try {
+    localStorage.setItem(DIFF_KEY, d);
+  } catch {
+    /* stockage indisponible */
+  }
+  document.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.diff === d)));
+  $('hud-difficulty').textContent = DIFFICULTIES[d].label.toUpperCase();
+}
+function loadDifficulty(): Difficulty {
+  try {
+    const d = localStorage.getItem(DIFF_KEY);
+    if (d && d in DIFFICULTIES) return d as Difficulty;
+  } catch {
+    /* stockage indisponible */
+  }
+  return 'medium';
+}
+setDifficulty(loadDifficulty());
+demoLevel = createTestLevel();
+document.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) =>
+  b.addEventListener('click', () => {
+    setDifficulty(b.dataset.diff as Difficulty);
+    demoLevel = createTestLevel();
+    if (!game) startAttract();
+  }),
+);
 
 const airFlip = $<HTMLInputElement>('opt-airflip');
 airFlip.checked = CONFIG.physics.airFlip;
@@ -125,7 +157,7 @@ function onEnd(e: EndInfo): void {
   const avg = st.matched ? (st.sumAbsMs / st.matched).toFixed(0) : '–';
   $('end-detail').textContent =
     `${st.flips} flips · ${st.perfect} parfaits (±${CONFIG.timing.perfectMs} ms) · ${st.great} dans le temps (±${CONFIG.timing.greatMs} ms) · ` +
-    `${st.offbeat} hors rythme · écart moyen ${avg} ms` +
+    `${st.offbeat} hors rythme · écart moyen ${avg} ms · ${DIFFICULTIES[currentDifficulty()].label}` +
     (e.practice ? ` · ${e.attempts} essais` : '');
   $('btn-switch').textContent = e.practice ? 'Mode normal' : 'Mode practice';
   show('end');

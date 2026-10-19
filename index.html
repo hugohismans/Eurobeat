@@ -22,6 +22,7 @@
         <div class="hud-info">
           <span id="hud-section"></span>
           <span id="hud-practice" class="tag hidden">PRACTICE</span>
+          <span id="hud-difficulty" class="tag diff"></span>
         </div>
         <div id="hud-combo" class="combo"></div>
         <div id="hud-delta" class="delta"></div>
@@ -31,6 +32,11 @@
         <div class="panel">
           <h1><span class="t1">GRAVITY</span><span class="t2">DRIFT</span></h1>
           <p class="sub">Choisis un morceau : le niveau est généré depuis la musique.</p>
+          <div class="seg" role="radiogroup" aria-label="Difficulté">
+            <button class="seg-btn" data-diff="easy" role="radio">Facile</button>
+            <button class="seg-btn" data-diff="medium" role="radio">Moyen</button>
+            <button class="seg-btn" data-diff="expert" role="radio">Expert</button>
+          </div>
           <label class="btn primary file-btn" for="file-input">Choisir un fichier audio</label>
           <input id="file-input" type="file" accept="audio/*,.mp3,.ogg,.wav,.flac,.m4a" hidden />
           <p class="hint drop-hint">ou glisse un MP3 / OGG / WAV sur la fenêtre</p>
@@ -116,6 +122,11 @@
             <p class="hint">Touche une section pour changer son type.</p>
           </div>
 
+          <div class="seg" role="radiogroup" aria-label="Difficulté">
+            <button class="seg-btn" data-diff="easy" role="radio">Facile</button>
+            <button class="seg-btn" data-diff="medium" role="radio">Moyen</button>
+            <button class="seg-btn" data-diff="expert" role="radio">Expert</button>
+          </div>
           <div class="col">
             <div class="row">
               <button id="btn-prep-play" class="btn primary">Jouer</button>

@@ -1,3 +1,4 @@
+import { thinBeats } from './difficulty';
 import { buildLevel, type Level } from './level';
 import type { MusicInfo, Section, SectionType } from './types';
 
@@ -83,5 +84,5 @@ const FLIP_BEATS: number[] = [
 ];
 
 export function createTestLevel(): Level {
-  return buildLevel(TEST_MUSIC, FLIP_BEATS, 150);
+  return buildLevel(TEST_MUSIC, thinBeats(FLIP_BEATS), 150);
 }

@@ -1,5 +1,6 @@
 import { CONFIG } from '../config';
 import { playBot } from './bot';
+import { currentDifficulty, thinBeats } from './difficulty';
 import { beatTime, buildLevel, rng, type Level } from './level';
 import { FlipProfile } from './physics';
 import type { MusicInfo, SectionType } from './types';
@@ -24,11 +25,11 @@ export function seedFrom(text: string): number {
 }
 
 export function generateLevel(music: MusicInfo, seedText: string): Level {
-  const seed = seedFrom(`${seedText}|${music.bpm}|${music.offset}|${CONFIG.physics.airFlip}`);
+  const seed = seedFrom(`${seedText}|${music.bpm}|${music.offset}|${CONFIG.physics.airFlip}|${currentDifficulty()}`);
   const rand = rng(seed);
   const beatSec = 60 / music.bpm;
   const halfOk = beatSec / 2 >= new FlipProfile().traversal + 0.03;
-  const beats: number[] = [];
+  let beats: number[] = [];
   const firstBar = 2; // laisser le temps de se mettre dans le rythme
   const nBars = Math.floor((music.duration - music.offset / 1000) / (4 * beatSec));
   let phraseA: number[] = [];
@@ -54,6 +55,8 @@ export function generateLevel(music: MusicInfo, seedText: string): Level {
       beats.push(b * 4 + x);
     }
   }
+
+  beats = thinBeats(beats);
 
   // réparation : retirer les flips qui rendent un passage impossible à ±tolérance
   const tol = (CONFIG.timing.toleranceMs - 2) / 1000;
