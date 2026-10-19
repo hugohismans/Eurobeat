@@ -42,6 +42,7 @@ Tap / clic / Espace / ↑ : inverser la gravité · Échap ou ❚❚ : pause · 
 | `src/game/bot.ts` | Bot de validation (extrêmes, alternés, aléatoires dans la tolérance) |
 | `src/game/game.ts` | Horloge musicale → simulation → rendu interpolé, mort / practice / pause |
 | `src/audio/track.ts` | Horloge Web Audio (`getOutputTimestamp`, latence calibrable) |
+| `src/audio/decode.ts` | Décodage des fichiers du joueur : décodeur du navigateur, puis libFLAC (WebAssembly, chargé à la demande) si un FLAC lui résiste ; haute résolution et multicanal ramenés à la fréquence du contexte, en stéréo |
 | `src/analysis/dsp.ts` | Analyse pure : flux spectral, tempo (autocorrélation + alignement de grille), temps 1, sections (auto-similarité + énergie) |
 | `src/analysis/worker.ts` | L'analyse tourne dans un Web Worker |
 | `src/analysis/cache.ts` | Cache IndexedDB (analyse + corrections, clé = SHA-256 du fichier, jamais l'audio) |

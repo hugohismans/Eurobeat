@@ -1,6 +1,7 @@
 import './style.css';
 import { analyzeBuffer, hashBytes, isCurrent, musicFromAnalysis } from './analysis/analyze';
 import { deleteTrack, getTrack, listTracks, putTrack } from './analysis/cache';
+import { decodeAudio, decodeOptions } from './audio/decode';
 import { AudioTrack, audioContext } from './audio/track';
 import { loadCatalog, type CatalogEntry } from './catalog';
 import { CONFIG } from './config';
@@ -244,11 +245,14 @@ function loading(text: string, p: number): void {
 async function openFile(file: File): Promise<void> {
   const ctx = audioContext();
   try {
-    loading(`Lecture de ${file.name}…`, 0.05);
+    const mb = file.size / 1e6;
+    loading(`Lecture de ${file.name} (${mb >= 10 ? Math.round(mb) : mb.toFixed(1)} Mo)…`, 0.05);
     const bytes = await file.arrayBuffer();
     const hash = await hashBytes(bytes);
     loading('Décodage…', 0.1);
-    const track = await AudioTrack.fromArrayBuffer(ctx, bytes); // détache `bytes`
+    // détache `bytes` ; un FLAC refusé par le navigateur est relu et décodé par libFLAC (WebAssembly)
+    const buffer = await decodeAudio(ctx, bytes, file.name, () => file.arrayBuffer(), (s) => loading(s, 0.12));
+    const track = new AudioTrack(ctx, buffer);
     let rec = await getTrack(hash);
     if (!rec || !isCurrent(rec.analysis)) {
       const analysis = await analyzeBuffer(track.buffer, (p) => loading('Analyse : tempo, premier temps fort, sections…', 0.15 + p * 0.85));
@@ -260,7 +264,7 @@ async function openFile(file: File): Promise<void> {
     prep.open({ name: rec.name, hash, track, analysis: rec.analysis, music: rec.music, origin: 'file' });
   } catch (e) {
     show('menu');
-    error(`Fichier illisible (${(e as Error).message}). Formats conseillés : MP3, OGG, WAV.`);
+    error(`Fichier illisible (${(e as Error).message}). Formats pris en charge : MP3, FLAC, OGG, WAV, M4A.`);
   }
 }
 
@@ -500,5 +504,5 @@ startAttract();
 
 // accès console / tests automatisés en dev uniquement
 if (import.meta.env.DEV) {
-  Object.assign(window, { __gd: { get level() { return session?.level; }, get game() { return game; }, get track() { return session?.track; }, prep } });
+  Object.assign(window, { __gd: { get level() { return session?.level; }, get game() { return game; }, get track() { return session?.track; }, prep, decodeOptions } });
 }
