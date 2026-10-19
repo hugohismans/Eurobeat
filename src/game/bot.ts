@@ -12,6 +12,7 @@ export interface BotResult {
 /** Joue le niveau en tapant chaque flip attendu décalé de offsets(i) secondes. */
 export function playBot(level: Level, offset: (i: number) => number): BotResult {
   const run = new Run(level, 0, 'floor');
+  run.suddenDeath = true; // un niveau valide se finit sans aucun choc
   level.flips.forEach((f, i) => run.input(f.time + offset(i)));
   run.advanceTo(level.end + 1);
   if (!run.dead) return { ok: true };

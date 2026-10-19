@@ -86,6 +86,17 @@ export const CONFIG = {
     zoom: 0.8,
   },
 
+  health: {
+    /** jauge perdue par choc (1 = mort subite) ; fixé par la difficulté */
+    damage: 0.34,
+    /** jauge regagnée par flip dans le temps */
+    heal: 0.04,
+    /** invulnérabilité après un choc (ms) : la voiture clignote et est remise du bon côté */
+    invulnMs: 700,
+    /** un choc = fin de partie (ancien comportement) */
+    suddenDeath: false,
+  },
+
   practice: {
     /** Délai avant respawn automatique en practice (ms). */
     respawnDelayMs: 650,

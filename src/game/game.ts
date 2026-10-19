@@ -18,7 +18,7 @@ export interface EndInfo {
 }
 
 export interface GameHooks {
-  onHud(h: { progress: number; section: string; combo: number; lastDelta: number | null; practice: boolean; attempts: number }): void;
+  onHud(h: { progress: number; section: string; combo: number; lastDelta: number | null; practice: boolean; attempts: number; health: number; hitFlash: boolean }): void;
   onEnd(info: EndInfo): void;
   onState(s: GameState): void;
 }
@@ -92,6 +92,10 @@ export class Game {
     const side = cp ? cp.side : 'floor';
     this.run = new Run(this.level, t, side, cp?.lo, cp?.hi);
     this.run.onFlip = (e) => this.onFlip(e);
+    this.run.onHit = (x, y) => {
+      this.renderer.hitFx(x, y);
+      if (navigator.vibrate) navigator.vibrate(35);
+    };
     this.attempts++;
     this.lastDelta = null;
     this.clock.playFrom(t - CONFIG.timing.leadIn);
@@ -153,6 +157,8 @@ export class Game {
       dead: run.dead,
       dt,
       debug: this.debug,
+      // clignotement pendant l'invulnérabilité qui suit un choc
+      invuln: !run.dead && rt < run.invulnUntil,
     });
 
     if (this.state === 'playing' || this.state === 'paused') this.emitHud(run);
@@ -173,6 +179,8 @@ export class Game {
       lastDelta: this.lastDelta,
       practice: this.practice,
       attempts: this.attempts,
+      health: run.health,
+      hitFlash: run.time < run.invulnUntil,
     });
   }
 

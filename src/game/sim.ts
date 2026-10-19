@@ -1,6 +1,6 @@
 import { CONFIG } from '../config';
 import type { Level } from './level';
-import { collides, createPlayer, HB_HALF, integrate, laneAt, requestFlip, sideOf, type PlayerState } from './physics';
+import { applyFlip, collides, createPlayer, HALF, HB_HALF, integrate, laneAt, requestFlip, sideOf, type PlayerState } from './physics';
 import type { Side } from './types';
 
 export interface RunStats {
@@ -12,6 +12,8 @@ export interface RunStats {
   matched: number;
   combo: number;
   maxCombo: number;
+  /** chocs encaissés */
+  hits: number;
 }
 
 export interface FlipEvent {
@@ -35,8 +37,16 @@ export class Run {
   dead = false;
   finished = false;
   deathTime = 0;
-  readonly stats: RunStats = { flips: 0, perfect: 0, great: 0, offbeat: 0, sumAbsMs: 0, matched: 0, combo: 0, maxCombo: 0 };
+  readonly stats: RunStats = { flips: 0, perfect: 0, great: 0, offbeat: 0, sumAbsMs: 0, matched: 0, combo: 0, maxCombo: 0, hits: 0 };
+  /** jauge de vie 0-1 (style Guitar Hero) */
+  health = 1;
+  /** invulnérable jusqu'à ce temps morceau (après un choc) */
+  invulnUntil = -Infinity;
   onFlip?: (e: FlipEvent) => void;
+  onHit?: (x: number, y: number) => void;
+  /** un choc = mort (validation par le bot, option « mort subite ») */
+  suddenDeath: boolean = CONFIG.health.suddenDeath;
+  private stretchCursor = 0;
 
   private inputs: number[] = [];
   private cursor = 0;
@@ -100,20 +110,54 @@ export class Run {
     if (buffered !== null) this.scoreFlip(buffered);
 
     this.time = t;
-    if (lane.crash) {
-      // tranche avant d'une poutre percutée en plein flip
-      this.dead = true;
-      this.deathTime = t;
-      return;
-    }
     const obs = this.level.obstacles;
     while (this.cursor < obs.length && obs[this.cursor].hx1 < x - HB_HALF) this.cursor++;
-    if (collides(obs, this.cursor, x, p.y)) {
+    // lane.crash : tranche avant d'une poutre percutée en plein flip
+    if (lane.crash || collides(obs, this.cursor, x, p.y)) {
+      if (t >= this.invulnUntil) this.hit(t, x);
+      if (this.dead) return;
+      if (lane.crash) this.recover(t, true);
+    }
+    if (t >= this.level.end) this.finished = true;
+  }
+
+  /** Choc : la jauge baisse ; à zéro, c'est perdu. Sinon invulnérabilité et retour du bon côté. */
+  private hit(t: number, x: number): void {
+    const s = this.stats;
+    s.hits++;
+    s.combo = 0;
+    this.health = this.suddenDeath ? 0 : Math.max(0, this.health - CONFIG.health.damage);
+    if (this.health <= 1e-6) {
+      this.health = 0;
       this.dead = true;
       this.deathTime = t;
       return;
     }
-    if (t >= this.level.end) this.finished = true;
+    this.invulnUntil = t + CONFIG.health.invulnMs / 1000;
+    this.onHit?.(x, this.player.y);
+    this.recover(t, false);
+  }
+
+  /** Remet le joueur du côté attendu par le niveau à cet instant (sinon il percuterait tout ce qui suit). */
+  private recover(t: number, teleport: boolean): void {
+    const st = this.level.stretches;
+    if (this.stretchCursor >= st.length || st[this.stretchCursor].t0 > t) this.stretchCursor = 0;
+    while (this.stretchCursor < st.length - 1 && st[this.stretchCursor].t1 <= t) this.stretchCursor++;
+    const exp = st[this.stretchCursor];
+    if (!exp) return;
+    const p = this.player;
+    const inLane = p.y > exp.lo && p.y < exp.hi;
+    if (teleport || !inLane) {
+      // poutre percutée : replacé directement sur la bonne surface de la bonne voie
+      p.grav = exp.side === 'ceil' ? 1 : -1;
+      p.y = exp.side === 'ceil' ? exp.hi - HALF : exp.lo + HALF;
+      p.vy = 0;
+      p.grounded = true;
+      this.prevY = p.y;
+    } else if (sideOf(p.grav) !== exp.side) {
+      applyFlip(p);
+    }
+    p.bufferedUntil = -Infinity;
   }
 
   private scoreFlip(tap: number): void {
@@ -146,6 +190,7 @@ export class Run {
         s.great++;
         s.combo++;
         s.maxCombo = Math.max(s.maxCombo, s.combo);
+        this.health = Math.min(1, this.health + CONFIG.health.heal);
       } else s.combo = 0;
     } else {
       s.offbeat++;

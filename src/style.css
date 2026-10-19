@@ -633,3 +633,42 @@ h3 {
   color: var(--orange);
   letter-spacing: 0.1em;
 }
+
+/* ---------- jauge de vie ---------- */
+.gauge {
+  flex: 0 0 min(30vw, 170px);
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+.gauge div {
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  transition: width 0.25s ease-out, background-color 0.25s;
+}
+.gauge .ok {
+  background: #a8ff60;
+}
+.gauge .warn {
+  background: var(--orange);
+}
+.gauge .low {
+  background: #ff2848;
+  animation: gauge-blink 0.5s steps(2) infinite;
+}
+.gauge.hit {
+  box-shadow: 0 0 0 2px #ff2848, 0 0 14px rgba(255, 40, 72, 0.8);
+}
+@keyframes gauge-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gauge .low {
+    animation: none;
+  }
+}

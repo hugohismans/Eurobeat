@@ -15,6 +15,7 @@
 
       <div id="hud" class="hidden">
         <div class="hud-top">
+          <div id="hud-gauge-box" class="gauge" aria-label="Jauge de vie"><div id="hud-gauge" class="ok"></div></div>
           <div class="progress"><div id="hud-progress-bar"></div></div>
           <span id="hud-progress">0 %</span>
           <button id="btn-pause" class="hud-pause" aria-label="Pause">❚❚</button>
@@ -62,6 +63,10 @@
                 <button id="btn-calibrate" class="btn mini wide">Calibrer</button>
               </span>
             </div>
+            <label class="setting">
+              <span>Mort subite (un choc = fin)</span>
+              <input id="opt-sudden" type="checkbox" />
+            </label>
             <label class="setting">
               <span>Flip en l'air (test)</span>
               <input id="opt-airflip" type="checkbox" />

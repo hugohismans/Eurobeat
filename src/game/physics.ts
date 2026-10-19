@@ -27,7 +27,7 @@ export function createPlayer(side: Side, lo = 0, hi = H): PlayerState {
   return { y: grav > 0 ? hi - HALF : lo + HALF, vy: 0, grav, grounded: true, bufferedUntil: -Infinity, bufferedAt: 0 };
 }
 
-function applyFlip(p: PlayerState): void {
+export function applyFlip(p: PlayerState): void {
   p.grav = p.grav > 0 ? -1 : 1;
   p.vy = p.grav * CONFIG.physics.flipImpulse;
   p.grounded = false;

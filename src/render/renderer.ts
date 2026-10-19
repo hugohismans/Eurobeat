@@ -21,6 +21,8 @@ export interface FrameState {
   /** temps réel écoulé depuis la frame précédente (s) */
   dt: number;
   debug: boolean;
+  /** invulnérable après un choc : la voiture clignote */
+  invuln?: boolean;
 }
 
 interface Drop {
@@ -63,6 +65,7 @@ export class Renderer {
   private shake = 0;
   private flash = 0;
   private fps = 60;
+  private hitFlash = 0;
   /** débord horizontal des couches monde (agrandi pendant un looping, quand la vue tourne) */
   private ext = 20;
 
@@ -106,6 +109,17 @@ export class Renderer {
     for (let i = 0; i < 10; i++) {
       this.particles.emit(x + (Math.random() - 0.5) * 0.6, y, -4 - Math.random() * 6, dir * (2 + Math.random() * 6), 0.35, 0.09, color);
     }
+  }
+
+  /** Choc encaissé (la jauge baisse) : étincelles rouges, petite secousse, flash. */
+  hitFx(x: number, y: number): void {
+    for (let i = 0; i < 24; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = 2 + Math.random() * 9;
+      this.particles.emit(x, y, Math.cos(a) * v, Math.sin(a) * v, 0.35 + Math.random() * 0.3, 0.05 + Math.random() * 0.07, i % 3 ? '#ff2848' : '#ffd0d8');
+    }
+    this.shake = Math.max(this.shake, 0.18);
+    this.hitFlash = 1;
   }
 
   deathFx(x: number, y: number, colors: string[]): void {
@@ -236,6 +250,11 @@ export class Renderer {
     // flash plein écran sur les temps forts du refrain / à la mort
     if (chorus && barPulse > 0.05) {
       ctx.fillStyle = css(pal.neonA, 0.07 * barPulse);
+      ctx.fillRect(-20, -20, this.w + 40, this.h + 40);
+    }
+    if (this.hitFlash > 0) {
+      this.hitFlash = Math.max(0, this.hitFlash - s.dt * 4);
+      ctx.fillStyle = `rgba(255,30,70,${0.22 * this.hitFlash})`;
       ctx.fillRect(-20, -20, this.w + 40, this.h + 40);
     }
     if (this.flash > 0) {
@@ -501,6 +520,7 @@ export class Renderer {
     const k = (s.py - lo - HALF) / Math.max(0.01, hi - lo - 2 * HALF);
     const flipY = Math.cos(Math.PI * Math.max(0, Math.min(1, k)));
     ctx.save();
+    if (s.invuln) ctx.globalAlpha = Math.floor(performance.now() / 70) % 2 ? 0.25 : 0.9;
     ctx.translate(this.sx(s.px), this.sy(s.py));
     ctx.scale(this.scale, -this.scale);
     ctx.rotate((drift ? 0.1 : 0.03) * (s.grav < 0 ? 1 : -1) * (s.grounded ? 1 : 0.3));

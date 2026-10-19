@@ -80,6 +80,24 @@ document.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) =>
   }),
 );
 
+// mort subite : un choc = fin (sinon jauge de vie)
+const SUDDEN_KEY = 'gd.suddenDeath';
+const sudden = $<HTMLInputElement>('opt-sudden');
+try {
+  CONFIG.health.suddenDeath = localStorage.getItem(SUDDEN_KEY) === '1';
+} catch {
+  /* stockage indisponible */
+}
+sudden.checked = CONFIG.health.suddenDeath;
+sudden.addEventListener('change', () => {
+  CONFIG.health.suddenDeath = sudden.checked;
+  try {
+    localStorage.setItem(SUDDEN_KEY, sudden.checked ? '1' : '0');
+  } catch {
+    /* stockage indisponible */
+  }
+});
+
 const airFlip = $<HTMLInputElement>('opt-airflip');
 airFlip.checked = CONFIG.physics.airFlip;
 airFlip.addEventListener('change', () => {
@@ -113,6 +131,8 @@ const hud = {
   combo: $('hud-combo'),
   delta: $('hud-delta'),
   practice: $('hud-practice'),
+  gauge: $('hud-gauge'),
+  gaugeBox: $('hud-gauge-box'),
 };
 const hudCache: Record<string, string> = {};
 function setText(el: HTMLElement, key: string, v: string): void {
@@ -121,7 +141,7 @@ function setText(el: HTMLElement, key: string, v: string): void {
   el.textContent = v;
 }
 
-function onHud(h: { progress: number; section: string; combo: number; lastDelta: number | null; practice: boolean; attempts: number }): void {
+function onHud(h: { progress: number; section: string; combo: number; lastDelta: number | null; practice: boolean; attempts: number; health: number; hitFlash: boolean }): void {
   const pct = Math.floor(h.progress * 100);
   setText(hud.pct, 'pct', `${pct} %`);
   if (hudCache.bar !== String(pct)) {
@@ -129,6 +149,14 @@ function onHud(h: { progress: number; section: string; combo: number; lastDelta:
     hud.bar.style.width = `${h.progress * 100}%`;
   }
   setText(hud.section, 'sec', h.section);
+  // jauge de vie : largeur + couleur (vert → orange → rouge), clignote quand elle est basse
+  const hp = Math.round(h.health * 100);
+  if (hudCache.hp !== String(hp)) {
+    hudCache.hp = String(hp);
+    hud.gauge.style.width = `${hp}%`;
+    hud.gauge.className = hp > 55 ? 'ok' : hp > 30 ? 'warn' : 'low';
+  }
+  hud.gaugeBox.classList.toggle('hit', h.hitFlash);
   setText(hud.combo, 'combo', h.combo >= 2 ? `${h.combo}×` : '');
   setText(hud.practice, 'prac', h.practice ? `PRACTICE · essai ${h.attempts}` : '');
   hud.practice.classList.toggle('hidden', !h.practice);
@@ -157,7 +185,7 @@ function onEnd(e: EndInfo): void {
   const avg = st.matched ? (st.sumAbsMs / st.matched).toFixed(0) : '–';
   $('end-detail').textContent =
     `${st.flips} flips · ${st.perfect} parfaits (±${CONFIG.timing.perfectMs} ms) · ${st.great} dans le temps (±${CONFIG.timing.greatMs} ms) · ` +
-    `${st.offbeat} hors rythme · écart moyen ${avg} ms · ${DIFFICULTIES[currentDifficulty()].label}` +
+    `${st.offbeat} hors rythme · écart moyen ${avg} ms · ${st.hits} choc${st.hits > 1 ? 's' : ''} · ${DIFFICULTIES[currentDifficulty()].label}` +
     (e.practice ? ` · ${e.attempts} essais` : '');
   $('btn-switch').textContent = e.practice ? 'Mode normal' : 'Mode practice';
   show('end');
