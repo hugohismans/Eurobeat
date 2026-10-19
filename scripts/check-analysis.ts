@@ -40,6 +40,9 @@ const cases: [number, number, string][] = [
   [172, 0.4, 'wav'],
   [150, 0.2, 'mp3'],
   [155, 2.35, 'mp3'],
+  // morceau qui démarre sur la musique, temps fort juste avant 0 : attendu une mesure plus loin
+  [150, -0.06, 'wav'],
+  [160, -0.02, 'mp3'],
 ];
 let ok = true;
 for (const [bpm, offset, ext] of cases) {
@@ -52,7 +55,8 @@ for (const [bpm, offset, ext] of cases) {
   }
   const { a, ms } = run(file);
   const dBpm = a.bpm - bpm;
-  const dOff = a.offset - offset * 1000;
+  const expected = offset < 0 ? offset + 240 / bpm : offset;
+  const dOff = a.offset - expected * 1000;
   const good = Math.abs(dBpm) < 0.05 && Math.abs(dOff) < 15;
   ok &&= good;
   const secs = a.sections.map((s) => `${s.type}@${s.start.toFixed(1)}`).join(' ');

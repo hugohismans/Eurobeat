@@ -25,7 +25,8 @@ export interface Analysis {
   barTimes: number[];
 }
 
-export const ANALYSIS_VERSION = 1;
+/** Incrémenter quand l'analyse change : les résultats en cache sont alors recalculés. */
+export const ANALYSIS_VERSION = 2;
 
 /** Biais mesuré du détecteur (s) : le flux culmine un peu après l'attaque réelle. */
 const ONSET_LATENCY = -0.012;
@@ -578,7 +579,10 @@ export function analyze(x: Float32Array, sr: number, progress?: (p: number) => v
   // premier temps fort au début de la musique (pas avant le premier son, à une mesure près)
   while (downbeat - 4 * beat >= firstOnset - 0.1) downbeat -= 4 * beat;
   while (downbeat < firstOnset - 0.1) downbeat += 4 * beat;
-  const offset = Math.max(0, downbeat);
+  // morceau qui démarre sur la musique : le temps fort peut tomber juste avant 0.
+  // On passe au suivant (une mesure plus loin) : ramener à 0 décalerait toute la grille.
+  while (downbeat < 0) downbeat += 4 * beat;
+  const offset = downbeat;
   const { sections, barEnergy, barTimes } = detectSections(feat, tempo.bpm, offset, duration);
   progress?.(1);
   return {
