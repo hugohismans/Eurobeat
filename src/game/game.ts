@@ -121,6 +121,12 @@ export class Game {
     let target = run.time;
     if (this.state === 'playing') {
       target = this.clock.now();
+      if (target - run.time > 0.25) {
+        // l'horloge a sauté (audio interrompu, gros ralentissement) : plutôt que de téléporter
+        // la voiture, on recale le son sur sa position, avec décompte
+        this.clock.playFrom(run.time - CONFIG.timing.leadIn);
+        target = run.time;
+      }
       run.advanceTo(target, CONFIG.sim.maxStepsPerFrame);
       if (run.dead) this.onDeath(run);
       else if (run.finished) this.onFinish(run);

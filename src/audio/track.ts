@@ -14,11 +14,16 @@ let sharedCtx: AudioContext | null = null;
 
 /** Temps contexte actuellement entendu (corrigé de la latence de sortie quand le navigateur la connaît). */
 export function heardTime(ctx: AudioContext): number {
+  const fallback = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+  // contexte suspendu (iOS le fait, ex. écran de fin) : le temps audio est figé, on n'extrapole pas
+  if (ctx.state !== 'running') return fallback;
   const ts = ctx.getOutputTimestamp?.();
   if (ts && ts.contextTime && ts.performanceTime) {
-    return ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
+    const age = (performance.now() - ts.performanceTime) / 1000;
+    // horodatage périmé (sortie audio interrompue) : l'extrapoler ferait sauter l'horloge
+    if (age >= 0 && age < 0.1) return ts.contextTime + age;
   }
-  return ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0);
+  return fallback;
 }
 
 /** Clic de métronome programmé au temps contexte `when`. */
@@ -112,6 +117,8 @@ export class AudioTrack implements MusicClock {
   playFrom(songTime: number): void {
     this.stop();
     const ctx = this.ctx;
+    // appelé depuis un geste (Jouer, Rejouer, Reprendre) : relance un contexte suspendu par iOS
+    if (ctx.state !== 'running') void ctx.resume();
     const src = ctx.createBufferSource();
     src.buffer = this.buffer;
     src.connect(this.gain);
